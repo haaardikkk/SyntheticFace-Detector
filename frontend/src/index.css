@@ -1,0 +1,344 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Custom properties ─────────────────────────── */
+:root {
+  --glass-bg:        rgba(255, 255, 255, 0.034);
+  --glass-bg-hi:     rgba(255, 255, 255, 0.062);
+  --glass-border:    rgba(255, 255, 255, 0.075);
+  --glass-border-hi: rgba(255, 255, 255, 0.12);
+  --glass-shine:     rgba(255, 255, 255, 0.055);
+  --accent:          #5b8dee;
+  --accentV:         #8b6cf7;
+  --accentC:         #38bdf8;
+  --t1:              #f0f2f8;
+  --t2:              #9eaabb;
+  --t3:              #6b7a94;
+}
+
+/* ─── @property for Gemini rotating border ───────── */
+@property --gem-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: #07080f;
+    color: #f0f2f8;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Subtle film-grain */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+  }
+
+  ::selection {
+    background: rgba(91, 141, 238, 0.3);
+    color: #f0f2f8;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(91, 141, 238, 0.65);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+}
+
+@layer components {
+
+  /* ── Section container ─────────────────────────── */
+  .section-container {
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .section-container {
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
+
+  /* ── Apple VisionOS-style glass ─────────────────── */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(28px) saturate(165%);
+    -webkit-backdrop-filter: blur(28px) saturate(165%);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-shine),
+      0 4px 6px rgba(0,0,0,0.15),
+      0 20px 60px rgba(0,0,0,0.4);
+    transition: box-shadow 0.3s ease;
+  }
+  .glass:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.07),
+      0 8px 16px rgba(0,0,0,0.25),
+      0 32px 80px rgba(0,0,0,0.5);
+  }
+
+  /* Elevated glass — navbar, modals */
+  .glass-hi {
+    background: var(--glass-bg-hi);
+    backdrop-filter: blur(36px) saturate(180%);
+    -webkit-backdrop-filter: blur(36px) saturate(180%);
+    border: 1px solid var(--glass-border-hi);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 8px 32px rgba(0,0,0,0.5),
+      0 40px 100px rgba(0,0,0,0.35);
+  }
+
+  /* ── Primary CTA button ─────────────────────────── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #5b8dee 0%, #7a6df0 100%);
+    color: #ffffff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    padding: 0.75rem 1.75rem;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(91,141,238,0.4),
+      0 0 28px rgba(91,141,238,0.3),
+      0 4px 16px rgba(0,0,0,0.45);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.14), transparent);
+    pointer-events: none;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    top: -20%; left: -60%;
+    width: 45%; height: 140%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
+    transform: skewX(-20deg);
+  }
+  .btn-primary:hover::after { animation: sweep 0.55s ease both; }
+  .btn-primary:hover {
+    box-shadow:
+      0 0 0 1px rgba(91,141,238,0.6),
+      0 0 44px rgba(91,141,238,0.4),
+      0 8px 24px rgba(0,0,0,0.5);
+    transform: translateY(-2px);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ── Ghost button ───────────────────────────────── */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--t2);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(255,255,255,0.09);
+    cursor: pointer;
+    transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.08);
+    color: #f0f2f8;
+    border-color: rgba(255,255,255,0.14);
+    transform: translateY(-1px);
+  }
+
+  /* ── Monospace metadata tag ─────────────────────── */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: var(--t2);
+    font-size: 0.75rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    padding: 0.3rem 0.75rem;
+    border-radius: 99px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .tag:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  /* ── Uppercase section eyebrow ──────────────────── */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.6875rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    color: var(--t3);              /* was #4a5568 — now readable */
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* ── Tilt card base ─────────────────────────────── */
+  .tilt-card {
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* ── Gemini rotating border ring ───────────────── */
+  /*
+   * Uses @property --gem-angle to animate the conic-gradient starting angle.
+   * The mask-composite: exclude reveals ONLY the 1.5px padding area as the ring.
+   * Result: a colorful light trail that travels around the border only.
+   */
+  .gemini-ring {
+    background: conic-gradient(
+      from var(--gem-angle),
+      transparent        0deg,
+      #38bdf8           55deg,
+      #5b8dee          110deg,
+      #8b6cf7          165deg,
+      transparent      210deg
+    );
+    padding: 1.5px;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+
+  .gemini-ring.is-active {
+    animation: gem-spin 3s linear infinite;
+  }
+
+  /* ── Hover underline for links ──────────────────── */
+  .hover-link {
+    position: relative;
+    transition: color 0.2s ease;
+  }
+  .hover-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.6;
+    transition: width 0.25s ease;
+  }
+  .hover-link:hover::after { width: 100%; }
+
+  /* ── Quick-stat card (ModelStats) ──────────────── */
+  .stat-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(28px) saturate(165%);
+    -webkit-backdrop-filter: blur(28px) saturate(165%);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: inset 0 1px 0 var(--glass-shine), 0 4px 20px rgba(0,0,0,0.3);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 40px rgba(0,0,0,0.45);
+  }
+}
+
+/* ─── Keyframe Animations ───────────────────────── */
+
+/* Gemini border — animates the --gem-angle CSS custom property */
+@keyframes gem-spin {
+  to { --gem-angle: 360deg; }
+}
+
+/* Button sweep highlight */
+@keyframes sweep {
+  from { left: -60%; opacity: 1; }
+  to   { left: 120%; opacity: 0; }
+}
+
+/* Ambient blob pulse */
+@keyframes slow-pulse {
+  0%, 100% { opacity: 0.06; transform: scale(1); }
+  50%       { opacity: 0.13; transform: scale(1.04); }
+}
+
+/* Prediction card entry */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Utilities ─────────────────────────────────── */
+@layer utilities {
+  .no-select { user-select: none; -webkit-user-select: none; }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #f0f2f8 0%, rgba(240,242,248,0.75) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gradient-text-accent {
+    background: linear-gradient(135deg, #5b8dee 0%, #8b6cf7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
