@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// During local dev Vite proxies this, but in production we can configure it.
-// Default fallback to port 7860 which is the Hugging Face port.
-const API_URL = import.meta.env.VITE_API_URL || '';
+// In production VITE_API_URL must point to the HF Space backend.
+// The hardcoded fallback ensures it works even if the env var is missing.
+const API_URL = import.meta.env.VITE_API_URL || 'https://haaardikkkk-syntheticface-detector.hf.space';
 
 export const predictImage = async (file) => {
   const formData = new FormData();
