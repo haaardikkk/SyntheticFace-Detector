@@ -1,3 +1,12 @@
+---
+title: Synthetic Face Detector
+emoji: 🎭
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # Synthetic Face Detector
 
 > A binary image classifier that determines whether a facial image is a **real human photograph** or an **AI-generated synthetic face** — powered by EfficientNet-B0 with Grad-CAM attention maps.

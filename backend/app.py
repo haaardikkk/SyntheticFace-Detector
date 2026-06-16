@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Synthetic Face Detector API", version="2.0.0")
+app = FastAPI(title="DeepFake Detector API", version="2.0.0")
 
 import os
 
@@ -35,7 +35,7 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"status": "running", "service": "synthetic-face-detector"}
+    return {"status": "running", "service": "deepfake-detector"}
 
 
 @app.get("/health")
