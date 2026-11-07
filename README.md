@@ -1,128 +1,65 @@
----
-title: Synthetic Face Detector
-emoji: 🎭
-colorFrom: blue
-colorTo: purple
-sdk: docker
-pinned: false
----
-
 # Synthetic Face Detector
 
-> A binary image classifier that determines whether a facial image is a **real human photograph** or an **AI-generated synthetic face** — powered by EfficientNet-B0 with Grad-CAM attention maps.
+> Determines whether a face image is a **real photograph** or **AI-generated / AI-altered**, and shows where.
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/haaardikkk/deepfake-detector)
-[![Model](https://img.shields.io/badge/model-EfficientNet--B0-blue)](https://arxiv.org/abs/1905.11946)
+**Live demo:** https://synthetic-face-detector.vercel.app · **Backend:** [Hugging Face Space](https://huggingface.co/spaces/Haaardikkkk/syntheticFace-Detector)
+
 [![Framework](https://img.shields.io/badge/framework-PyTorch-orange)](https://pytorch.org/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE.txt)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
----
-
-## Overview
-
-This project is a **synthetic face classification system**, not a video deepfake detector. It uses a fine-tuned EfficientNet-B0 model to analyse facial images and classify them as:
-
-- **REAL** — a real human photograph
-- **AI-GENERATED** — a synthetically produced face (GAN / diffusion model)
-
-The application includes **Grad-CAM attention maps** that highlight which regions of the face influenced the classification decision, providing explainability for each prediction.
-
-> ⚠️ This is an educational and research project. It is not suitable for forensic, legal, or production security applications.
+> ⚠️ An educational and research project, for single images only (not video). It is not suitable for forensic, legal or security decisions.
 
 ---
 
 ## Features
 
-- 🔍 **Binary classification** — Real vs. AI-Generated face detection
-- 🗺️ **Grad-CAM visualisation** — Attention heatmap overlaid on the input image
-- 📊 **Confidence score** — Arc gauge showing model certainty (0–100%)
-- 🖼️ **Face preprocessing** — Automatic face detection and crop via OpenCV
-- 🌐 **Web interface** — Premium dark glassmorphism UI with smooth animations
-- ⚡ **Fast inference** — < 1 second on standard CPU (no GPU required)
+- **Real vs. AI classification** of the largest face in an image
+- **Alteration map** of the regions that look generated or altered
+- **Confidence score**, shown as an arc gauge
+- **Automatic face detection and crop** (YuNet); if no face is found, the centre of the image is analysed and the API says so
+- **Fast on CPU**, no GPU required
 
----
+## Models
 
-## Tech Stack
+**Model v3:** ConvNeXt-Tiny at 256 px with an alteration-map decoder, trained on 179,426 face crops from 10+ generators
+(Stable Diffusion, inpainting, InsightFace swaps, Flux, SDXL, DALL-E 3, StyleGAN, OpenFake frontier models) and real photos
+from DeepFakeFace, FFHQ, CelebA-HQ and WildDeepfake.
 
-### Frontend
-| Technology | Role |
-|---|---|
-| React 18 | UI framework |
-| Vite | Build tool |
-| TailwindCSS 3 | Utility CSS |
-| Framer Motion | Animations |
-| Recharts | Confidence arc gauge |
-| Lucide React | Icons |
+| Test set | Balanced accuracy | AUC | Fakes caught | Real photos accepted |
+|---|---|---|---|---|
+| Held-out test (generators seen in training) | 94.2% | 0.981 | 94.9% | 93.6% |
+| Unseen generators (OpenFake core/test) | 74.0% | 0.828 | 93.9% | 54.1% |
+| Unseen videos (WildDeepfake test) | 71.3% | 0.789 | 61.9% | 80.7% |
+| Social-media images (OpenFake Reddit) | 52.9% | 0.556 | 96.1% | 9.8% |
 
-### Backend
-| Technology | Role |
-|---|---|
-| FastAPI | REST API |
-| PyTorch 2.x | Model inference |
-| EfficientNet-B0 | Classification model |
-| pytorch-grad-cam | Attention map generation |
-| OpenCV | Face detection and crop |
-| Pillow | Image preprocessing |
+The last three sets contain images from sources never used in training. The model's main weakness is false alarms:
+it flags most real social-media photos as AI-generated.
 
----
+**Retrain:** see [docs/COLAB.md](docs/COLAB.md). The notebook needs no manual downloads, and every step survives a closed tab or an empty compute budget.
 
-## Model Details
+## Local setup
 
-| Parameter | Value |
-|---|---|
-| Architecture | EfficientNet-B0 (fine-tuned) |
-| Training Dataset | CelebDF (real) + TPDNE-derived (synthetic) |
-| Output Classes | Real / AI-Generated |
-| Input Resolution | 224 × 224 px |
-| Validation Accuracy | ~95%* |
-| Inference Time | < 1 second |
-| ML Framework | PyTorch 2.x |
-| Explainability | Grad-CAM (`features[-1][-1]`) |
-| Face Preprocessing | OpenCV crop → resize |
-
-\* *Measured on held-out test split only. May not generalise to all real-world images.*
-
----
-
-## Local Setup
-
-### Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-- npm 9+
-
-### 1. Clone the repository
+Requires Python 3.12+ and Node.js 18+.
 
 ```bash
-git clone https://github.com/haaardikkk/deepfake-detector.git
-cd deepfake-detector
+git clone https://github.com/haaardikkk/SyntheticFace-Detector.git
+cd SyntheticFace-Detector
+git lfs pull
 ```
 
-### 2. Backend setup
+**Backend** (`http://localhost:9000`, docs at `/docs`):
 
 ```bash
-# Create and activate virtual environment
 python -m venv venv
-
-# Windows
 venv\Scripts\activate
-
-# macOS / Linux
-source venv/bin/activate
-
-# Install dependencies
 cd backend
 pip install -r requirements.txt
-
-# Start the backend server
-python -m uvicorn app:app --reload --port 9000
+uvicorn app:app --reload --port 9000
 ```
 
-The API will be available at `http://localhost:9000`  
-Interactive docs: `http://localhost:9000/docs`
+On macOS / Linux, activate with `source venv/bin/activate`.
 
-### 3. Frontend setup
+**Frontend** (`http://localhost:3000`):
 
 ```bash
 cd frontend
@@ -130,94 +67,67 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+On Windows you can double-click `START_BACKEND_WITH_VENV.bat` and `START_FRONTEND.bat` instead.
 
-### 4. Quick start (Windows)
-
-Double-click `START_BACKEND_WITH_VENV.bat` to start the backend, then `START_FRONTEND.bat` for the frontend.
-
----
-
-## API Reference
+## API
 
 ### `POST /predict`
 
-Classifies a facial image.
+`multipart/form-data` with an image in the field `file` (10 MB at most).
 
-**Request:** `multipart/form-data` with field `file` (image file)
-
-**Response:**
 ```json
 {
   "prediction": "REAL",
   "confidence": 94.7,
-  "heatmap": "<base64-encoded PNG>"
+  "heatmap": "<base64-encoded PNG, or null>",
+  "model_version": "v3",
+  "face_detected": true,
+  "altered_area": 0.0
 }
 ```
 
-**Error responses:**
-- `400` — No face detected in the image
-- `422` — Invalid file type or unprocessable image
-- `500` — Internal server error
+`altered_area` is the percentage of the face crop flagged as altered.
 
----
+| Status | Meaning |
+|---|---|
+| `413` | Larger than 10 MB |
+| `422` | Not an image, or it cannot be decoded |
+| `500` | Prediction failed |
+| `503` | The model did not load; `GET /health` says why |
 
-## Project Structure
+`GET /health` and `GET /` report the status and the loaded model.
+
+## Project structure
 
 ```
-SyntheticFace Detector/
-├── backend/
-│   ├── app.py              # FastAPI application and /predict endpoint
-│   ├── predictor.py        # Model inference + Grad-CAM logic
-│   ├── face_crop.py        # OpenCV face detection and crop
-│   ├── model_loader.py     # EfficientNet-B0 model loading
-│   ├── best_model_v2.pth   # Trained model weights
-│   └── requirements.txt    # Python dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # Navbar, Hero, UploadCard, PredictionCard, etc.
-│   │   ├── pages/          # Home page layout
-│   │   └── index.css       # Global design system (glass, animations)
-│   ├── tailwind.config.js  # Custom design tokens
-│   └── package.json
-├── START_BACKEND_WITH_VENV.bat
-├── START_FRONTEND.bat
-└── docker-compose.yml
+backend/
+  app.py             FastAPI app and endpoints
+  predictor.py       inference and heatmaps
+  model_loader.py    loads the model from model/
+  model/             trained weights and model_meta.json (scores, calibration)
+  model_def.py       model architecture (shared with the training notebook)
+  face_crop.py       face detection and cropping (shared with the training notebook)
+  Dockerfile         image for Hugging Face Spaces
+frontend/            React + Vite website
+notebooks/
+  build_colab_notebook.py        generates the notebook
+  train_synthetic_face_colab.ipynb
+docs/COLAB.md        how to train
+DEPLOYMENT.md        how to deploy
 ```
 
----
+## Known limitations
 
-## Known Limitations
-
-- **Not a video deepfake detector** — analyses single images only
-- **Not evaluated on diffusion-model outputs** — may underperform on Stable Diffusion / FLUX generated faces
-- **Performance degrades** on heavily compressed, low-resolution, or heavily cropped faces
-- **Single face per image** — processes only the largest detected face
-- **Not suitable** for legal, forensic, or production security applications
-
----
-
-## Planned Improvements
-
-- [ ] Multi-face detection within a single image
-- [ ] Diffusion-model samples in training data (Stable Diffusion, FLUX)
-- [ ] Batch image classification endpoint
-- [ ] Model versioning and comparison interface
-- [ ] Confidence calibration
-
----
+- Single images only; the largest face in each image
+- Detecting images from generators a model has never seen remains an open research problem: expect lower accuracy on new ones
+- Heavy compression and very small faces reduce accuracy
+- Alteration maps are approximate: their training masks are estimated, not hand-drawn
+- Training datasets are mostly limited to research and non-commercial use
 
 ## License
 
-MIT License — see [LICENSE.txt](LICENSE.txt) for details.
-
----
+Code: MIT, see [LICENSE](LICENSE). Trained models inherit the terms of their training data.
 
 ## Author
 
-**Hardik**  
-[GitHub](https://github.com/haaardikkk) · [LinkedIn](https://linkedin.com/in/haaardikkk)
-
----
-
-*Made with ❤️ as an ML portfolio and research project.*
+**Hardik** · [GitHub](https://github.com/haaardikkk) · [LinkedIn](https://linkedin.com/in/haaardikkk)

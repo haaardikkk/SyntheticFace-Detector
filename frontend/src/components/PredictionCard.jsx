@@ -23,9 +23,9 @@ const verdictVariants = {
 };
 
 const DATA_ROWS = [
-  { label: 'Model',          value: 'EfficientNet-B0', mono: true  },
-  { label: 'Preprocessing',  value: 'OpenCV face crop', mono: true  },
-  { label: 'Dataset',        value: 'CelebDF + Synthetic', mono: false },
+  { label: 'Model',          value: 'ConvNeXt-Tiny v3', mono: true  },
+  { label: 'Preprocessing',  value: 'YuNet face crop', mono: true  },
+  { label: 'Dataset',        value: '179k faces, 10+ generators', mono: false },
 ];
 
 const PredictionCard = ({ prediction }) => {
@@ -43,7 +43,7 @@ const PredictionCard = ({ prediction }) => {
         </div>
         <div>
           <h2 className="text-sm font-semibold" style={{ color: '#f0f2f8', lineHeight: 1.2 }}>Classification Result</h2>
-          <p className="text-xs mt-0.5" style={{ color: '#6b7a94' }}>EfficientNet-B0 · Synthetic face analysis</p>
+          <p className="text-xs mt-0.5" style={{ color: '#6b7a94' }}>ConvNeXt-Tiny v3 · Synthetic face analysis</p>
         </div>
       </div>
 

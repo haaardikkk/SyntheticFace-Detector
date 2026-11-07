@@ -18,7 +18,17 @@ const itemVariants = {
   visible: { opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } },
 };
 
-const HeatmapCard = ({ heatmap, originalPreview }) => (
+const copy = {
+  title: 'Alteration Map',
+  subtitle: 'Regions the model believes were generated or altered',
+  panel: 'Altered regions',
+  alt: 'Altered regions overlay',
+  caption: 'Warmer regions are more likely AI-made or altered. No colour means nothing was flagged.',
+  missing: 'The map could not be generated for this image.',
+};
+
+const HeatmapCard = ({ heatmap, originalPreview }) => {
+  return (
   <TiltCard maxTilt={5}>
     {/* Header */}
     <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -27,9 +37,9 @@ const HeatmapCard = ({ heatmap, originalPreview }) => (
         <Eye className="w-4 h-4" style={{ color: '#38bdf8' }} aria-hidden="true" />
       </div>
       <div>
-        <h2 className="text-sm font-semibold" style={{ color: '#f0f2f8', lineHeight: 1.2 }}>Grad-CAM Attention Map</h2>
+        <h2 className="text-sm font-semibold" style={{ color: '#f0f2f8', lineHeight: 1.2 }}>{copy.title}</h2>
         <p className="text-xs mt-0.5" style={{ color: '#6b7a94' }}>
-          Regions influencing the classification decision
+          {copy.subtitle}
         </p>
       </div>
     </div>
@@ -66,7 +76,7 @@ const HeatmapCard = ({ heatmap, originalPreview }) => (
 
       {/* Attention */}
       <motion.div variants={itemVariants} className="flex flex-col p-3">
-        <p className="eyebrow mb-2">Attention</p>
+        <p className="eyebrow mb-2">{copy.panel}</p>
         <div
           className="relative flex-1 rounded-xl overflow-hidden min-h-[140px] flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.025)' }}
@@ -74,7 +84,7 @@ const HeatmapCard = ({ heatmap, originalPreview }) => (
           {heatmap ? (
             <img
               src={`data:image/png;base64,${heatmap}`}
-              alt="Grad-CAM attention overlay"
+              alt={copy.alt}
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
             />
@@ -94,11 +104,10 @@ const HeatmapCard = ({ heatmap, originalPreview }) => (
       className="px-5 py-3 text-xs leading-relaxed"
       style={{ color: '#6b7a94', borderTop: '1px solid rgba(255,255,255,0.06)' }}
     >
-      {heatmap
-        ? 'Warmer regions indicate greater influence on the classification.'
-        : 'Grad-CAM could not be generated for this image.'}
+      {heatmap ? copy.caption : copy.missing}
     </motion.p>
   </TiltCard>
-);
+  );
+};
 
 export default React.memo(HeatmapCard);

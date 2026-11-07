@@ -12,23 +12,23 @@ import TiltCard from './TiltCard';
 const QUICK_STATS = [
   {
     label: 'Architecture',
-    value: 'EfficientNet-B0',
+    value: 'ConvNeXt-Tiny',
     Icon:  Cpu,
     color: '#5b8dee',
     bg:    'rgba(91,141,238,0.12)',
     small: true,
   },
   {
-    label: 'Test Accuracy*',
-    value: '~95%',
+    label: 'Balanced Accuracy*',
+    value: '94.2%',
     Icon:  Target,
     color: '#4ade80',
     bg:    'rgba(74,222,128,0.12)',
     small: false,
   },
   {
-    label: 'Input Size',
-    value: '224 × 224',
+    label: 'AUC, Unseen Generators',
+    value: '0.83',
     Icon:  Frame,
     color: '#8b6cf7',
     bg:    'rgba(139,108,247,0.12)',
@@ -46,19 +46,25 @@ const QUICK_STATS = [
 
 /* ── Full specification table ────────────────────────── */
 const SPECS = [
-  { label: 'Architecture',        value: 'EfficientNet-B0',                          note: null },
-  { label: 'Training Dataset',    value: 'CelebDF + Synthetic Faces (TPDNE-derived)', note: null },
-  { label: 'Output Classes',      value: 'Real / AI-Generated',                       note: null },
-  { label: 'Input Resolution',    value: '224 × 224 px',                              note: null },
-  { label: 'Validation Accuracy', value: '~95%',
-    note: 'Held-out test split only. May not generalise to all real-world images.' },
+  { label: 'Architecture',        value: 'ConvNeXt-Tiny + alteration-map decoder',     note: null },
+  { label: 'Training Data',       value: '179,426 face crops, 10+ generators',
+    note: 'DeepFakeFace, SFHQ (Flux, SDXL, DALL-E 3), OpenFake, FFHQ / StyleGAN, CelebA-HQ, WildDeepfake' },
+  { label: 'Output',              value: 'Real / AI-generated + altered regions',      note: null },
+  { label: 'Input Resolution',    value: '256 × 256 px',                               note: null },
+  { label: 'Held-out Test',       value: '94.2% balanced accuracy · AUC 0.98',
+    note: 'Unseen images from the same generators as training' },
+  { label: 'Unseen Generators',   value: '74.0% balanced accuracy · AUC 0.83',
+    note: 'OpenFake test set: catches 94% of fakes, but flags 46% of real photos' },
+  { label: 'Unseen Videos',       value: '71.3% balanced accuracy · AUC 0.79',
+    note: 'WildDeepfake test set: compressed face swaps from internet video' },
+  { label: 'Social-media Images', value: '52.9% balanced accuracy · AUC 0.56',
+    note: 'OpenFake Reddit set: most real photos are flagged as AI. Not reliable here' },
   { label: 'Inference Time',      value: '< 1 second',
     note: 'Standard CPU — no GPU required' },
-  { label: 'ML Framework',        value: 'PyTorch 2.x',                               note: null },
-  { label: 'Explainability',      value: 'Grad-CAM (pytorch-grad-cam)',
-    note: 'Attention map generated per prediction' },
-  { label: 'Face Preprocessing',  value: 'OpenCV crop → resize',
-    note: 'Largest detected face extracted before inference' },
+  { label: 'Explainability',      value: 'Alteration map',
+    note: 'Trained on the real altered regions of inpainted and face-swapped images' },
+  { label: 'Face Preprocessing',  value: 'YuNet face detection → 256 px crop',
+    note: 'Largest detected face; the image centre if no face is found' },
 ];
 
 const sectionVariants = {
@@ -134,7 +140,7 @@ const ModelStats = () => (
         </div>
 
         <p className="text-xs mb-4" style={{ color: '#6b7a94' }}>
-          * Accuracy measured on held-out test split — not representative of all real-world cases.
+          * Held-out test images from the generators the model trained on. Scores on unseen generators and real-world images are lower: see below.
         </p>
 
         {/* ── Full specification table ──────────── */}

@@ -68,7 +68,7 @@ const PLACEHOLDERS = [
   {
     key:      'heat',
     Icon:     Eye,
-    title:    'Grad-CAM map',
+    title:    'Alteration map',
     sub:      'Generated after classification completes',
     iconColor: '#6b7a94',
     accentBg:  'rgba(56,189,248,0.06)',
