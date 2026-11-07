@@ -146,7 +146,7 @@ const Footer = () => (
               </div>
               <div>
                 <p className="eyebrow">Developer</p>
-                <p className="text-sm font-semibold mt-0.5" style={{ color: '#f0f2f8' }}>Hardikk</p>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: '#f0f2f8' }}>Hardik</p>
               </div>
             </div>
 

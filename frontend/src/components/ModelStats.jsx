@@ -115,6 +115,7 @@ const ModelStats = () => (
             <motion.div
               key={label}
               custom={i}
+              className="flex"
               variants={tileVariants}
               initial="hidden"
               whileInView="visible"
@@ -150,9 +151,8 @@ const ModelStats = () => (
         >
           {/* Column headers */}
           <div
-            className="grid px-6 py-3"
+            className="hidden sm:grid sm:grid-cols-[200px_1fr] px-6 py-3"
             style={{
-              gridTemplateColumns: '200px 1fr',
               background: 'rgba(255,255,255,0.028)',
               borderBottom: '1px solid rgba(255,255,255,0.07)',
             }}
@@ -165,17 +165,15 @@ const ModelStats = () => (
           {SPECS.map(({ label, value, note }, i) => (
             <div
               key={label}
-              className="grid px-6 py-4 transition-colors duration-200"
+              className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-1 sm:gap-4 px-5 sm:px-6 py-4 transition-colors duration-200"
               style={{
-                gridTemplateColumns: '200px 1fr',
-                gap: '1rem',
                 background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
                 borderBottom: i < SPECS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(91,141,238,0.05)')}
               onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)')}
             >
-              <span className="text-sm self-start pt-px" style={{ color: '#9eaabb' }}>{label}</span>
+              <span className="text-xs sm:text-sm self-start pt-px uppercase sm:normal-case tracking-wider sm:tracking-normal" style={{ color: '#9eaabb' }}>{label}</span>
               <div>
                 <span className="text-sm font-mono" style={{ color: '#f0f2f8' }}>{value}</span>
                 {note && (

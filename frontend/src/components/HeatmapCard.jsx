@@ -21,7 +21,7 @@ const itemVariants = {
 const copy = {
   title: 'Alteration Map',
   subtitle: 'Regions the model believes were generated or altered',
-  panel: 'Altered regions',
+  panel: 'Analysed face',
   alt: 'Altered regions overlay',
   caption: 'Warmer regions are more likely AI-made or altered. No colour means nothing was flagged.',
   missing: 'The map could not be generated for this image.',
@@ -58,7 +58,7 @@ const HeatmapCard = ({ heatmap, originalPreview }) => {
         className="flex flex-col p-3"
         style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <p className="eyebrow mb-2">Input</p>
+        <p className="eyebrow mb-2">Uploaded image</p>
         <div
           className="relative flex-1 rounded-xl overflow-hidden min-h-[140px]"
           style={{ background: 'rgba(255,255,255,0.025)' }}
@@ -67,7 +67,7 @@ const HeatmapCard = ({ heatmap, originalPreview }) => {
             <img
               src={originalPreview}
               alt="Original uploaded image"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
               loading="lazy"
             />
           )}
@@ -85,7 +85,7 @@ const HeatmapCard = ({ heatmap, originalPreview }) => {
             <img
               src={`data:image/png;base64,${heatmap}`}
               alt={copy.alt}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
               loading="lazy"
             />
           ) : (
