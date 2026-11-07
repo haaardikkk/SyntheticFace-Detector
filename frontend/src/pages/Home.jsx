@@ -21,7 +21,7 @@ const EASE = [0.23, 1, 0.32, 1];
  */
 const PlaceholderCard = ({ Icon, title, sub, iconColor = '#6b7a94', accentBg = 'rgba(255,255,255,0.04)' }) => (
   <div
-    className="glass rounded-2xl flex flex-col"
+    className="glass rounded-2xl flex flex-col flex-1"
     style={{ minHeight: '280px' }}
     aria-hidden="true"
   >
