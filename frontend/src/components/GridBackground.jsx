@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 /* ── Particle data ─────────────────────────────────────────────── */
 const PARTICLES = [
@@ -72,7 +71,7 @@ const GridBackground = () => (
 
     {/* ── Floating particles ──────────────────────── */}
     {PARTICLES.map(({ id, x, y, size, dur, delay }) => (
-      <motion.div
+      <div
         key={id}
         className="absolute rounded-full"
         style={{
@@ -85,17 +84,7 @@ const GridBackground = () => (
             : id % 3 === 1
             ? 'rgba(139,108,247,0.45)'
             : 'rgba(56,189,248,0.4)',
-        }}
-        animate={{
-          y:       [0, -24, 0],
-          opacity: [0.35, 0.65, 0.35],
-          scale:   [1, 1.4, 1],
-        }}
-        transition={{
-          duration: dur,
-          delay,
-          repeat: Infinity,
-          ease: 'easeInOut',
+          animation: `float-dot ${dur}s ease-in-out ${delay}s infinite`,
         }}
       />
     ))}

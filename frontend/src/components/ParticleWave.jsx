@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 const ParticleWave = () => {
   const canvasRef = useRef(null);
@@ -77,9 +77,14 @@ const ParticleWave = () => {
     window.addEventListener('resize', handleResize);
     canvas.addEventListener('mouseleave', handleMouseLeave);
 
-    let animationFrameId;
+    let animationFrameId = null;
+    let onScreen = true;
 
     const render = () => {
+      if (!onScreen || document.hidden) {   // paused: nothing to draw while the hero is not visible
+        animationFrameId = null;
+        return;
+      }
       ctx.fillStyle = '#07080f';
       ctx.fillRect(0, 0, width, height);
 
@@ -147,13 +152,27 @@ const ParticleWave = () => {
       animationFrameId = requestAnimationFrame(render);
     };
 
+    const resume = () => {
+      if (animationFrameId === null && onScreen && !document.hidden) {
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+    const observer = new window.IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      resume();
+    });
+    observer.observe(canvas);
+    document.addEventListener('visibilitychange', resume);
+
     render();
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
-      cancelAnimationFrame(animationFrameId);
+      document.removeEventListener('visibilitychange', resume);
+      observer.disconnect();
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
     };
   }, []);
 

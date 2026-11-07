@@ -96,8 +96,8 @@ const Navbar = () => {
       <div
         className="sm:hidden fixed top-0 inset-x-0 z-50"
         style={{
-          backdropFilter: 'blur(28px)',
-          WebkitBackdropFilter: 'blur(28px)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           background: 'rgba(7,8,15,0.88)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
