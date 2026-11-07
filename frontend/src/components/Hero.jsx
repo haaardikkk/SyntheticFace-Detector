@@ -3,11 +3,11 @@ import { ChevronRight, ExternalLink } from 'lucide-react';
 import ParticleWave from './ParticleWave';
 
 const META = [
-  { label: 'Architecture', value: 'EfficientNet-B0'      },
-  { label: 'Task',         value: 'Binary Classification' },
-  { label: 'Dataset',      value: 'CelebDF + Synthetic'   },
+  { label: 'Architecture', value: 'ConvNeXt-Tiny'        },
+  { label: 'Task',         value: 'Detection + Localization' },
+  { label: 'Dataset',      value: '179k faces · 10+ generators' },
   { label: 'Framework',    value: 'PyTorch 2.x'           },
-  { label: 'Version',      value: 'v2.0'                  },
+  { label: 'Version',      value: 'v3.0'                  },
 ];
 
 const containerVariants = {
@@ -66,10 +66,10 @@ const Hero = () => {
             className="text-base sm:text-xl leading-relaxed mb-10 max-w-2xl mx-auto"
             style={{ color: '#9eaabb' }}
           >
-            A binary image classifier that determines whether a facial image is a{' '}
-            <span style={{ color: '#f0f2f8', fontWeight: 500 }}>real human photograph</span> or an{' '}
-            <span style={{ color: '#f0f2f8', fontWeight: 500 }}>AI-generated synthetic face</span>.
-            Powered by EfficientNet-B0 with Grad-CAM attention maps.
+            Determines whether a face image is a{' '}
+            <span style={{ color: '#f0f2f8', fontWeight: 500 }}>real photograph</span> or{' '}
+            <span style={{ color: '#f0f2f8', fontWeight: 500 }}>AI-generated or AI-altered</span>,
+            and maps the regions that look altered.
           </motion.p>
 
           {/* CTA row */}

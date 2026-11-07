@@ -22,14 +22,14 @@ const verdictVariants = {
   visible: { opacity: 1, scale: 1, transition: { duration: 0.55, ease: [0.23, 1, 0.32, 1], delay: 0.05 } },
 };
 
-const DATA_ROWS = [
-  { label: 'Model',          value: 'EfficientNet-B0', mono: true  },
-  { label: 'Preprocessing',  value: 'OpenCV face crop', mono: true  },
-  { label: 'Dataset',        value: 'CelebDF + Synthetic', mono: false },
-];
-
 const PredictionCard = ({ prediction }) => {
   const isReal     = useMemo(() => prediction?.prediction === 'REAL', [prediction?.prediction]);
+  const faceFound  = prediction?.face_detected !== false;
+  const DATA_ROWS  = [
+    { label: 'Altered area',  value: prediction?.altered_area != null ? `${prediction.altered_area}% of face crop` : '—', mono: true },
+    { label: 'Face detected', value: faceFound ? 'Yes' : 'No: analysed image centre', mono: false },
+    { label: 'Model',         value: 'ConvNeXt-Tiny v3', mono: true },
+  ];
   const labelColor = isReal ? '#4ade80' : '#f87171';
   const barGlow    = isReal ? 'rgba(74,222,128,0.5)' : 'rgba(248,113,113,0.5)';
   const iconBg     = isReal ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)';
@@ -43,7 +43,7 @@ const PredictionCard = ({ prediction }) => {
         </div>
         <div>
           <h2 className="text-sm font-semibold" style={{ color: '#f0f2f8', lineHeight: 1.2 }}>Classification Result</h2>
-          <p className="text-xs mt-0.5" style={{ color: '#6b7a94' }}>EfficientNet-B0 · Synthetic face analysis</p>
+          <p className="text-xs mt-0.5" style={{ color: '#6b7a94' }}>ConvNeXt-Tiny v3 · Synthetic face analysis</p>
         </div>
       </div>
 
@@ -69,9 +69,14 @@ const PredictionCard = ({ prediction }) => {
         </p>
         <p className="text-sm" style={{ color: '#9eaabb' }}>
           {isReal
-            ? 'Likely a real human photograph'
-            : 'Likely an AI-generated synthetic face'}
+            ? 'Likely a real photograph'
+            : 'Likely AI-generated or AI-altered'}
         </p>
+        {!faceFound && (
+          <p className="text-xs mt-3 mx-auto max-w-xs leading-relaxed" style={{ color: '#fbbf24' }}>
+            No face was found, so the centre of the image was analysed. This result is less reliable.
+          </p>
+        )}
       </motion.div>
 
       {/* ── Confidence bar ───────────────────────── */}
@@ -122,11 +127,11 @@ const PredictionCard = ({ prediction }) => {
             variants={rowVariants}
             initial="hidden"
             animate="visible"
-            className="flex items-center justify-between px-5 py-3"
+            className="flex items-center justify-between gap-4 px-5 py-3"
             style={{ borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
           >
             <span className="text-xs" style={{ color: '#6b7a94' }}>{label}</span>
-            <span className={`text-sm ${mono ? 'font-mono' : ''}`} style={{ color: '#9eaabb' }}>{value}</span>
+            <span className={`text-sm text-right ${mono ? 'font-mono' : ''}`} style={{ color: '#9eaabb' }}>{value}</span>
           </motion.div>
         ))}
       </div>

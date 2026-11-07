@@ -8,19 +8,20 @@ import Logo from './Logo';
 
 const TECH = [
   'React 18', 'Vite', 'TailwindCSS', 'Framer Motion',
-  'FastAPI', 'PyTorch', 'EfficientNet-B0', 'Grad-CAM', 'OpenCV', 'Pillow',
+  'FastAPI', 'PyTorch', 'timm', 'ConvNeXt', 'OpenCV', 'Pillow',
 ];
 
 const LIMITATIONS = [
-  'Not designed for video deepfake or face-swap detection',
-  'May underperform on diffusion-model outputs (Stable Diffusion, FLUX)',
-  'Performance degrades on heavily compressed or cropped faces',
+  'Single images only: not a video deepfake detector',
+  'Often flags real photos from social media as AI-generated',
+  'Less reliable on generators it never saw in training',
+  'Performance degrades on heavily compressed or very small faces',
   'Not suitable for legal, forensic, or production security use cases',
 ];
 
 const FUTURE = [
   'Multi-face detection within a single image',
-  'Diffusion-model synthetic samples in training data',
+  'Fewer false alarms on real social-media photos',
   'Batch image classification endpoint',
   'Model versioning and comparison interface',
 ];
@@ -73,10 +74,10 @@ const Footer = () => (
               <PanelLabel>Dataset</PanelLabel>
               <p className="text-sm leading-relaxed" style={{ color: '#9eaabb' }}>
                 Trained on{' '}
-                <span style={{ color: '#f0f2f8', fontWeight: 500 }}>CelebDF</span> (real celebrity face images)
-                and{' '}
-                <span style={{ color: '#f0f2f8', fontWeight: 500 }}>TPDNE-derived synthetic samples</span>
-                {' '}(StyleGAN2 via ThisPersonDoesNotExist). Not evaluated on diffusion-model outputs.
+                <span style={{ color: '#f0f2f8', fontWeight: 500 }}>179k face crops</span> from DeepFakeFace,
+                FFHQ, CelebA-HQ and WildDeepfake (real), and Stable Diffusion, inpainting, face swaps, Flux,
+                SDXL, DALL-E 3, StyleGAN and{' '}
+                <span style={{ color: '#f0f2f8', fontWeight: 500 }}>OpenFake</span> generators (AI-made).
               </p>
             </Panel>
           </div>
@@ -85,19 +86,9 @@ const Footer = () => (
           <Panel>
             <PanelLabel>Architecture</PanelLabel>
             <p className="text-sm leading-relaxed" style={{ color: '#9eaabb' }}>
-              <span style={{ color: '#f0f2f8', fontWeight: 500 }}>EfficientNet-B0</span> fine-tuned for binary
-              classification. Final FC layer replaced with a 2-class output head. Grad-CAM computed on{' '}
-              <code
-                className="text-xs font-mono px-1.5 py-0.5 rounded"
-                style={{
-                  background: 'rgba(91,141,238,0.1)',
-                  color: '#5b8dee',
-                  border: '1px solid rgba(91,141,238,0.18)',
-                }}
-              >
-                features[-1][-1]
-              </code>
-              {' '}via pytorch-grad-cam.
+              <span style={{ color: '#f0f2f8', fontWeight: 500 }}>ConvNeXt-Tiny</span> with two outputs: a
+              real-vs-AI score, and an alteration map from a feature-pyramid decoder trained on the altered
+              regions of inpainted and face-swapped images. Scores are calibrated on validation data.
             </p>
           </Panel>
 
@@ -155,15 +146,15 @@ const Footer = () => (
               </div>
               <div>
                 <p className="eyebrow">Developer</p>
-                <p className="text-sm font-semibold mt-0.5" style={{ color: '#f0f2f8' }}>Hardikk</p>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: '#f0f2f8' }}>Hardik</p>
               </div>
             </div>
 
             <div className="space-y-5">
               {[
                 { k: 'Purpose',       v: 'ML portfolio / research project' },
-                { k: 'Last Updated',  v: 'June 2025',   mono: true         },
-                { k: 'Model Version', v: 'v2.0',         mono: true         },
+                { k: 'Last Updated',  v: 'November 2026', mono: true       },
+                { k: 'Model Version', v: 'v3.0',         mono: true         },
                 { k: 'License',       v: 'MIT'                              },
               ].map(({ k, v, mono }) => (
                 <div key={k}>

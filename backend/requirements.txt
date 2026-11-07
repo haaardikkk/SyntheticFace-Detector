@@ -1,9 +1,11 @@
-fastapi
-uvicorn
-torch
-torchvision
-pillow
-numpy
-opencv-python
-python-multipart
-grad-cam
+# The extra index supplies CPU-only torch: about 1.5 GB smaller than the default CUDA build, and the Space has no GPU.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0
+torchvision==0.29.2
+timm==1.0.31
+fastapi==0.162.0
+uvicorn==0.54.0
+python-multipart==0.0.33
+pillow==13.0.0
+numpy==2.5.4
+opencv-python-headless==4.13.0.92

@@ -4,12 +4,20 @@ __pycache__/
 
 node_modules/
 dist/
+.vite/
 
 .env
+!frontend/.env.development
 
 .DS_Store
 
 *.log
+.ipynb_checkpoints/
+
 # Local research files
 deepfake_handbook_part1.html
 deepfake_handbook_part2.html
+
+.venv/
+Thumbs.db
+Desktop.ini

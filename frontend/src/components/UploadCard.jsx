@@ -159,7 +159,7 @@ const UploadCard = ({
               {/* Preview image */}
               <div className="relative group rounded-xl overflow-hidden flex-1 min-h-[200px]"
                    style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover absolute inset-0" loading="lazy" />
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-contain absolute inset-0" loading="lazy" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                      style={{ background: 'rgba(0,0,0,0.35)' }} />
                 <button

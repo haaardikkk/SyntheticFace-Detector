@@ -21,7 +21,7 @@ const EASE = [0.23, 1, 0.32, 1];
  */
 const PlaceholderCard = ({ Icon, title, sub, iconColor = '#6b7a94', accentBg = 'rgba(255,255,255,0.04)' }) => (
   <div
-    className="glass rounded-2xl flex flex-col"
+    className="glass rounded-2xl flex flex-col flex-1"
     style={{ minHeight: '280px' }}
     aria-hidden="true"
   >
@@ -58,7 +58,7 @@ const PlaceholderCard = ({ Icon, title, sub, iconColor = '#6b7a94', accentBg = '
 
 const PLACEHOLDERS = [
   {
-    key:      'pred',
+    id:       'pred',
     Icon:     ScanLine,
     title:    'Awaiting classification',
     sub:      'Upload an image and run the classifier',
@@ -66,15 +66,15 @@ const PLACEHOLDERS = [
     accentBg:  'rgba(91,141,238,0.06)',
   },
   {
-    key:      'heat',
+    id:       'heat',
     Icon:     Eye,
-    title:    'Grad-CAM map',
+    title:    'Alteration map',
     sub:      'Generated after classification completes',
     iconColor: '#6b7a94',
     accentBg:  'rgba(56,189,248,0.06)',
   },
   {
-    key:      'conf',
+    id:       'conf',
     Icon:     BarChart2,
     title:    'Confidence score',
     sub:      'Model certainty shown here',
@@ -135,7 +135,7 @@ const Home = () => {
                   Run Classifier
                 </h2>
                 <p className="text-sm max-w-lg" style={{ color: '#9eaabb' }}>
-                  Upload a facial image to classify it as real or AI-generated.
+                  Upload a face image to check whether it is real, AI-generated or AI-altered.
                   Clear, front-facing portraits produce the most reliable results.
                 </p>
               </motion.div>
@@ -190,7 +190,7 @@ const Home = () => {
                       animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE, delay: 0.12 } }}
                       className="flex flex-col"
                     >
-                      <ConfidenceGauge confidence={prediction.confidence} />
+                      <ConfidenceGauge confidence={prediction.confidence} prediction={prediction.prediction} />
                     </motion.div>
                   ) : (
                     <motion.div key="conf-ph" {...fadeIn} className="flex flex-col">
