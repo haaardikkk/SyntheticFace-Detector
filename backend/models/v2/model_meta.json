@@ -1,0 +1,57 @@
+{
+  "version": "v2",
+  "name": "EfficientNet-B0 v2",
+  "architecture": "efficientnet_b0",
+  "weights": "efficientnet_b0_v2.pth",
+  "default": false,
+  "heatmap": "gradcam",
+  "fake_class_index": 0,
+  "input_size": 224,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "uncertain_band": [
+    0.35,
+    0.75
+  ],
+  "description": "The original model: EfficientNet-B0 trained on CelebDF frames and StyleGAN faces. Not calibrated.",
+  "metrics": {
+    "held-out test (same generators as training)": {
+      "auc": 0.4709,
+      "balanced_acc": 0.4922,
+      "fake_recall": 0.3164,
+      "real_specificity": 0.6681,
+      "eer": 0.5393
+    },
+    "GOLD unseen generators (OpenFake core/test)": {
+      "auc": 0.7302,
+      "balanced_acc": 0.6109,
+      "fake_recall": 0.3722,
+      "real_specificity": 0.8497,
+      "eer": 0.3175
+    },
+    "GOLD in the wild (OpenFake Reddit)": {
+      "auc": 0.2858,
+      "balanced_acc": 0.3277,
+      "fake_recall": 0.195,
+      "real_specificity": 0.4605,
+      "eer": 0.667
+    },
+    "GOLD unseen videos (WildDeepfake test)": {
+      "auc": 0.4579,
+      "balanced_acc": 0.4988,
+      "fake_recall": 0.0,
+      "real_specificity": 0.9975,
+      "eer": 0.532
+    }
+  },
+  "trained_at": "2026-06",
+  "metrics_note": "Scored by the v4 notebook on the same test images as v4."
+}

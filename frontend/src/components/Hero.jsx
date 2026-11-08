@@ -5,9 +5,9 @@ import ParticleWave from './ParticleWave';
 const META = [
   { label: 'Architecture', value: 'ConvNeXt-Tiny'        },
   { label: 'Task',         value: 'Detection + Localization' },
-  { label: 'Dataset',      value: '179k faces · 10+ generators' },
+  { label: 'Dataset',      value: '182k faces · 10+ generators' },
   { label: 'Framework',    value: 'PyTorch 2.x'           },
-  { label: 'Version',      value: 'v3.0'                  },
+  { label: 'Version',      value: 'v4.0'                  },
 ];
 
 const containerVariants = {

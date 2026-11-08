@@ -13,17 +13,16 @@ const TECH = [
 
 const LIMITATIONS = [
   'Single images only: not a video deepfake detector',
-  'Often flags real photos from social media as AI-generated',
+  'Still flags about half of real social-media photos as AI-generated',
   'Less reliable on generators it never saw in training',
   'Performance degrades on heavily compressed or very small faces',
   'Not suitable for legal, forensic, or production security use cases',
 ];
 
 const FUTURE = [
-  'Multi-face detection within a single image',
-  'Fewer false alarms on real social-media photos',
-  'Batch image classification endpoint',
-  'Model versioning and comparison interface',
+  'Further cut false alarms on real social-media photos',
+  'Video deepfake detection, frame by frame',
+  'Shareable result reports',
 ];
 
 /* ── Shared glass panel ────────────────────────── */
@@ -74,8 +73,8 @@ const Footer = () => (
               <PanelLabel>Dataset</PanelLabel>
               <p className="text-sm leading-relaxed" style={{ color: '#9eaabb' }}>
                 Trained on{' '}
-                <span style={{ color: '#f0f2f8', fontWeight: 500 }}>179k face crops</span> from DeepFakeFace,
-                FFHQ, CelebA-HQ and WildDeepfake (real), and Stable Diffusion, inpainting, face swaps, Flux,
+                <span style={{ color: '#f0f2f8', fontWeight: 500 }}>182k face crops</span> from DeepFakeFace,
+                FFHQ, CelebA-HQ, WildDeepfake and Reddit (real), and Stable Diffusion, inpainting, face swaps, Flux,
                 SDXL, DALL-E 3, StyleGAN and{' '}
                 <span style={{ color: '#f0f2f8', fontWeight: 500 }}>OpenFake</span> generators (AI-made).
               </p>
@@ -154,7 +153,7 @@ const Footer = () => (
               {[
                 { k: 'Purpose',       v: 'ML portfolio / research project' },
                 { k: 'Last Updated',  v: 'November 2026', mono: true       },
-                { k: 'Model Version', v: 'v3.0',         mono: true         },
+                { k: 'Model Version', v: 'v4.0',         mono: true         },
                 { k: 'License',       v: 'MIT'                              },
               ].map(({ k, v, mono }) => (
                 <div key={k}>

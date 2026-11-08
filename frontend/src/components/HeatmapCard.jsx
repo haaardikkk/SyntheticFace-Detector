@@ -18,16 +18,27 @@ const itemVariants = {
   visible: { opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } },
 };
 
-const copy = {
-  title: 'Alteration Map',
-  subtitle: 'Regions the model believes were generated or altered',
-  panel: 'Analysed face',
-  alt: 'Altered regions overlay',
-  caption: 'Warmer regions are more likely AI-made or altered. No colour means nothing was flagged.',
-  missing: 'The map could not be generated for this image.',
+const COPY = {
+  alteration: {
+    title: 'Alteration Map',
+    subtitle: 'Regions the model believes were generated or altered',
+    panel: 'Analysed face',
+    alt: 'Altered regions overlay',
+    caption: 'Warmer regions are more likely AI-made or altered. No colour means nothing was flagged.',
+    missing: 'The map could not be generated for this image.',
+  },
+  gradcam: {
+    title: 'Attention Map',
+    subtitle: 'Where this model looked (Grad-CAM), not where an image was altered',
+    panel: 'Analysed face',
+    alt: 'Grad-CAM attention overlay',
+    caption: 'Warmer regions influenced the decision more. This older model cannot locate alterations.',
+    missing: 'The map could not be generated for this image.',
+  },
 };
 
-const HeatmapCard = ({ heatmap, originalPreview }) => {
+const HeatmapCard = ({ heatmap, originalPreview, kind = 'alteration' }) => {
+  const copy = COPY[kind] ?? COPY.alteration;
   return (
   <TiltCard maxTilt={5}>
     {/* Header */}

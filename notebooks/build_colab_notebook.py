@@ -28,7 +28,7 @@ def embed(filename):
 
 
 md("""
-# Synthetic Face Detector v3: training notebook
+# Synthetic Face Detector: training notebook (v4)
 
 Trains a detector that answers two questions about a face image:
 1. **Is it real, or AI-generated / AI-altered?**
@@ -36,6 +36,12 @@ Trains a detector that answers two questions about a face image:
    shows what the classifier looked at.
 
 **No downloads or uploads on your side.** Every dataset is read directly from the Hugging Face Hub.
+
+**v4 targets v3's main weakness: false alarms on real photos from social media.** v3 learned that compression artifacts
+mean "fake", because in its training data the fakes were saved with heavier compression than the real photos. v4:
+* adds ~20k **real photos posted on Reddit** (OpenFake `supplement_reddit`, posted after the Reddit test set was collected);
+* simulates social-media re-uploads (resizing + JPEG), **more often on real photos**, so compression stops predicting the label;
+* starts from v3's best model and reuses the data already prepared in Drive, so it needs far fewer compute units.
 
 ## How to run
 1. **Runtime → Change runtime type.** Pick **CPU** for the first run, because data preparation does not need a GPU and
@@ -57,6 +63,7 @@ data preparation or ~30 minutes of training is ever repeated.
 | train | [TheKernel01/140k-Real-and-Fake-Faces](https://huggingface.co/datasets/TheKernel01/140k-Real-and-Fake-Faces) | FFHQ real photos, StyleGAN (the kind of image the old model knew) |
 | train | [bitmind/celeb-a-hq](https://huggingface.co/datasets/bitmind/celeb-a-hq) | High-quality real faces |
 | train | [xingjunm/WildDeepfake](https://huggingface.co/datasets/xingjunm/WildDeepfake) `train` | Compressed real and swapped faces from internet video |
+| train (v4) | OpenFake `supplement_reddit` | Real photos as posted on Reddit (Jul–Nov 2026); its fakes are not used, to keep the unseen-generator test clean |
 | **gold test** | OpenFake `core/test` | **Generators never seen in training** |
 | **gold test** | OpenFake `reddit` | **AI images and real photos as they circulate online** |
 | **gold test** | WildDeepfake `test` | **Videos never seen in training** |
@@ -64,7 +71,7 @@ data preparation or ~30 minutes of training is ever repeated.
 ## Why this should beat the old model, and how we will know
 The old model only saw CelebDF frames vs one StyleGAN source, and its "~95%" comes from that same mix.
 Here: many generators, identical cropping and re-encoding for every source so the model cannot learn "which dataset is this",
-heavy compression/blur augmentation, and the old model is **scored on the same test images** at the end.
+heavy compression/blur augmentation, and **every earlier model (v2, v3) is scored on the same test images** at the end.
 """)
 
 code(r"""
@@ -81,6 +88,7 @@ CAPS = {
     "real_celebahq": 15_000,
     "real_wild": 15_000, "fake_wild": 15_000,
     "real_openfake": 15_000, "fake_openfake": 30_000,
+    "real_social": 20_000,      # v4: real photos from Reddit posts, the false-alarm fix
     "sfhq": {"FLUX1_SCHNELL": 9_000, "SDXL": 9_000, "FLUX1_DEV": 7_273, "FLUX1_PRO": 3_209, "DALLE3": 1_123},
     # gold tests (never trained on)
     "gold_ood_fake": 5_000, "gold_ood_real": 2_000,
@@ -88,6 +96,7 @@ CAPS = {
     "gold_wild_fake": 4_000, "gold_wild_real": 4_000,
 }
 OPENFAKE_TRAIN_SHARDS = 15      # about 5 GB each; more shards = more real faces, slower preparation
+SOCIAL_SHARDS = 27              # supplement_reddit files to scan (all 27); images are downloaded only for real photos
 WILD_TARS, WILD_FRAMES_PER_TAR = 80, 200
 WAIT_FOR_ALL_DATA = True        # do not train on partial data
 VAL_FRACTION, TEST_FRACTION = 0.05, 0.07
@@ -109,13 +118,17 @@ EARLY_STOP_EVALS = 8            # stop after this many validations without impro
 MAX_TRAIN_HOURS  = 7.5          # training time per session, then test + export
 MAX_SESSION_HOURS = 11.5        # whole-session cap: free Colab sessions end at about 12 h
 VAL_IMAGES       = 5_000        # images per validation
-DRIVE_FOLDER     = "SyntheticFace_v3"
+DRIVE_FOLDER     = "SyntheticFace_v3"   # prepared data lives here, shared by every training run
+RUN_NAME         = "v4"                 # this run's checkpoints and model go to DRIVE_FOLDER/runs/<RUN_NAME>/
+INIT_FROM        = "v3"                 # start from that run's best model ("" = from ImageNet). "v3" = the first run, in DRIVE_FOLDER itself
 FORCE_FINISH     = False        # True = stop training now: score and package the best model so far
 DISCONNECT_WHEN_DONE = True     # release the GPU when finished (saves compute units)
 SEED = 42
 
+if INIT_FROM:   # fine-tuning a trained model: fewer passes, gentler steps
+    EPOCHS, LR_BACKBONE, LR_HEADS = 4, 5e-5, 2e-4
 if QUICK_RUN:
-    DATA_SCALE, OPENFAKE_TRAIN_SHARDS, WILD_TARS, WILD_FRAMES_PER_TAR = 0.03, 2, 8, 40
+    DATA_SCALE, OPENFAKE_TRAIN_SHARDS, WILD_TARS, WILD_FRAMES_PER_TAR, SOCIAL_SHARDS = 0.03, 2, 8, 40, 1
     EPOCHS, EVAL_EVERY, SAVE_MINUTES, MAX_TRAIN_HOURS, VAL_IMAGES = 1, 200, 5, 0.3, 800
     DRIVE_FOLDER += "_quick"
 import time as _t; SESSION_START = _t.time()
@@ -154,7 +167,11 @@ if IN_COLAB:
     DRIVE_DIR, WORK = Path("/content/drive/MyDrive") / DRIVE_FOLDER, Path("/content/work")
 else:   # Jupyter elsewhere: a local folder stands in for Drive
     DRIVE_DIR, WORK = Path(DRIVE_FOLDER).resolve(), Path("work").resolve()
-for d in (DRIVE_DIR / "data", DRIVE_DIR / "checkpoints", WORK / "dl", WORK / "shards"):
+RUN_DIR = DRIVE_DIR / "runs" / RUN_NAME
+INIT_PTH = None
+if INIT_FROM:
+    INIT_PTH = (DRIVE_DIR if INIT_FROM == "v3" else DRIVE_DIR / "runs" / INIT_FROM) / "best_model.pth"
+for d in (DRIVE_DIR / "data", RUN_DIR / "checkpoints", WORK / "dl", WORK / "shards"):
     d.mkdir(parents=True, exist_ok=True)
 sys.path.insert(0, str(WORK))
 
@@ -173,7 +190,7 @@ else:
     DEVICE, AMP_DTYPE, HW = "cpu", None, "CPU"
 
 # a run keeps the batch size it started with, even if a later session gets a different GPU
-_choice = DRIVE_DIR / "model_choice.json"
+_choice = RUN_DIR / "model_choice.json"
 if _choice.exists():
     BATCH_SIZE = json.loads(_choice.read_text())["batch_size"]
 
@@ -248,7 +265,9 @@ class DriveWriter:
 drive_writer = DriveWriter()
 
 _free = shutil.disk_usage(DRIVE_DIR).free / 1e9
-runlog(f"session start | {HW} | {CPUS} CPUs | quick run: {QUICK_RUN} | Drive: {DRIVE_DIR} ({_free:.1f} GB free)")
+runlog(f"session start | run {RUN_NAME} | {HW} | {CPUS} CPUs | quick run: {QUICK_RUN} | Drive: {DRIVE_DIR} ({_free:.1f} GB free)")
+if INIT_PTH and not INIT_PTH.exists():
+    print(f"⚠️ INIT_FROM={INIT_FROM!r}, but {INIT_PTH} does not exist: training starts from ImageNet with fine-tuning settings.")
 if _free < 3:
     print("⚠️ Drive is nearly full. Old checkpoints go to Drive's Trash and still count: empty it if needed.")
 
@@ -639,11 +658,36 @@ def openfake_tasks(prefix, max_files, real_bucket, fake_bucket):
     return tasks
 
 
+def social_tasks(cursor):
+    # supplement_reddit: only real photos are used (its fakes may come from generators held out in core/test).
+    # The files are grouped by label and ~71% of rows are fake, so labels are read first and images are
+    # downloaded only for row groups that contain wanted rows.
+    import pyarrow.parquet as pq
+    files = sorted(f for f in repo_files(OPENFAKE, "supplement/reddit/") if f.endswith(".parquet"))[:SOCIAL_SHARDS]
+    fs = HfFileSystem()
+    f0, g0, r0 = (cursor["f"], cursor["g"], cursor["r"]) if cursor else (0, 0, 0)
+    for fi in range(f0, len(files)):
+        with fs.open(f"datasets/{OPENFAKE}/{files[fi]}", "rb", block_size=4 << 20) as fh:
+            pf = pq.ParquetFile(fh)
+            for gi in range(g0 if fi == f0 else 0, pf.metadata.num_row_groups):
+                rows = pf.read_row_group(gi, columns=["label", "row_id", "nsfw_score"]).to_pylist()
+                start = r0 if fi == f0 and gi == g0 else 0
+                wanted = {ri for ri in range(start, len(rows))
+                          if rows[ri]["label"] == "real" and (rows[ri]["nsfw_score"] or 0.0) < 0.3}
+                images = pf.read_row_group(gi, columns=["image"]).column(0) if wanted else None
+                for ri in range(start, len(rows)):
+                    cur = {"f": fi, "g": gi, "r": ri + 1}
+                    if ri in wanted:
+                        yield cur, "real_social", (images[ri].as_py()["bytes"], "real_social", "reddit", rows[ri]["row_id"])
+                    else:
+                        yield cur, "skip", None
+
+
 def openfake_process(payload):
     data, bucket, model, row_id = payload
     gold = bucket.startswith("gold")
     label = int("fake" in bucket)
-    source = bucket if gold else ("fake_openfake" if label else "real_openfake")
+    source = bucket if gold or bucket == "real_social" else ("fake_openfake" if label else "real_openfake")
     return face_record(data, f"{source}-{row_id}", label, source, model if label else f"real_{model}", row_id,
                        "gold" if gold else split_of("of" + row_id), "ones" if label else "zeros")
 """)
@@ -659,6 +703,7 @@ SOURCES = [   # name, task reader, processor, caps per bucket
     ("wild_train_fake", wild_tasks("fake", "train"), wild_process, {"fake": scaled(c["fake_wild"])}),
     ("openfake_train", openfake_tasks("core/train-", OPENFAKE_TRAIN_SHARDS, "real_openfake", "fake_openfake"), openfake_process,
      {"real_openfake": scaled(c["real_openfake"]), "fake_openfake": scaled(c["fake_openfake"])}),
+    ("social_real", social_tasks, openfake_process, {"real_social": scaled(c["real_social"])}),
     ("gold_wild_real", wild_tasks("real", "test"), wild_process, {"real": scaled(c["gold_wild_real"])}),
     ("gold_wild_fake", wild_tasks("fake", "test"), wild_process, {"fake": scaled(c["gold_wild_fake"])}),
     ("gold_ood", openfake_tasks("core/test-", 2 if QUICK_RUN else 13, "gold_ood_real", "gold_ood_fake"), openfake_process,
@@ -735,7 +780,7 @@ def jpeg(img, q):
     return cv2.imdecode(cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, int(q)])[1], cv2.IMREAD_COLOR)
 
 
-def train_augment(img, mask, rng):
+def train_augment(img, mask, rng, label):
     s = IMAGE_SIZE
     # random crop on image and mask together
     side = int(s * np.sqrt(rng.uniform(0.7, 1.0)))
@@ -747,6 +792,15 @@ def train_augment(img, mask, rng):
         img, mask = img[:, ::-1].copy(), mask[:, ::-1].copy()
     if rng.random() < 0.3:
         img = np.clip(img.astype(np.float32) * rng.uniform(0.8, 1.2) + rng.uniform(-15, 15), 0, 255).astype(np.uint8)
+    # social-media re-upload: resize + JPEG, once or twice. Applied more often to real photos: in the training
+    # data the fakes tend to carry heavier compression, and v3 learned "compressed = fake" from that
+    if rng.random() < (0.6 if label == 0 else 0.35):
+        for _ in range(int(rng.integers(1, 3))):
+            f = rng.uniform(0.5, 1.0)
+            if f < 0.95:
+                small = cv2.resize(img, (int(s * f), int(s * f)), interpolation=cv2.INTER_AREA)
+                img = cv2.resize(small, (s, s), interpolation=cv2.INTER_LINEAR)
+            img = jpeg(img, rng.uniform(50, 90))
     if rng.random() < 0.7:   # degrade
         if rng.random() < 0.2:
             img = cv2.GaussianBlur(img, (0, 0), rng.uniform(0.3, 1.5))
@@ -797,7 +851,7 @@ class FaceDataset(Dataset):
         else:
             mask = np.full((MASK_SIZE, MASK_SIZE), 1.0 if kind == "ones" else 0.0, np.float32)
         if self.train:
-            img, mask = train_augment(img, mask, self.rng)
+            img, mask = train_augment(img, mask, self.rng, r["label"])
         elif self.kind != "clean":
             img = perturb(img, self.kind)
         x = torch.from_numpy(cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0).permute(2, 0, 1)
@@ -817,8 +871,11 @@ def collect(forward, rows, kind="clean"):
     # forward(x) -> (p-fake logits, mask logits or None). Also the pixel IoU on images that have a real mask.
     logits, inter, union = [], 0.0, 0.0
     for x, _y, mask, _valid, has_file in eval_loader(rows, kind):
+        xd = x.to(DEVICE, non_blocking=True)
         with torch.autocast(DEVICE, dtype=AMP_DTYPE, enabled=AMP_DTYPE is not None):
-            lg, mk = forward(x.to(DEVICE, non_blocking=True))
+            lg, mk = forward(xd)
+        if not torch.isfinite(lg).all():     # float16 overflow (T4): redo this batch in full precision
+            lg, mk = forward(xd)
         logits.append(lg.float().cpu())
         if mk is not None and has_file.sum() > 0:
             keep = has_file.bool()
@@ -872,16 +929,25 @@ md("""
 ## Stage 4: train
 Continues automatically from `checkpoints/last.pt` (model, optimizer, schedule, step). The batch for each step is computed from
 the step number, so a resumed run continues the same sequence. A checkpoint is written every `SAVE_MINUTES` in the background,
-when you press Stop, and when the time budget ends. Each new best model goes straight to `synthface_v3.zip`.
+when you press Stop, and when the time budget ends. Each new best model goes straight to `runs/<RUN_NAME>/best_model.pth`.
+With `INIT_FROM` set, a new run starts from that earlier model instead of from ImageNet.
 
 Model selection uses clean and degraded validation images, averaged per generator, so a model that only works on
 pristine images is not picked.
 """)
 
 code(r"""
-CKPT = DRIVE_DIR / "checkpoints" / "last.pt"
-BEST_PTH = DRIVE_DIR / "best_model.pth"
-FINISHED = DRIVE_DIR / "training_finished.json"
+# Rerunning this cell after a crash: free the GPU memory the failed run still holds
+sys.last_traceback = sys.last_value = sys.last_exc = None
+for _name in ("model", "optim", "sched", "scaler", "loader", "train_set", "x", "y", "mask", "valid", "logit", "mask_logit", "loss"):
+    globals().pop(_name, None)
+gc.collect()
+if DEVICE == "cuda":
+    torch.cuda.empty_cache()
+
+CKPT = RUN_DIR / "checkpoints" / "last.pt"
+BEST_PTH = RUN_DIR / "best_model.pth"
+FINISHED = RUN_DIR / "training_finished.json"
 
 train_rows = by_split["train"]
 _pools = {0: defaultdict(list), 1: defaultdict(list)}
@@ -938,6 +1004,10 @@ def validate(model):
     fwd = lambda x: model(x)
     clean, iou = collect(fwd, VAL_SUB, "clean")
     degraded, _ = collect(fwd, VAL_SUB, "jpeg50+half")
+    bad = int((~np.isfinite(clean)).sum() + (~np.isfinite(degraded)).sum())
+    if bad:
+        runlog(f"⚠ validation: {bad} scores were not finite, counted as 0")
+        clean, degraded = np.nan_to_num(clean, nan=0.0, posinf=0.0, neginf=0.0), np.nan_to_num(degraded, nan=0.0, posinf=0.0, neginf=0.0)
     res_c, res_d = summarize(VAL_SUB, clean), summarize(VAL_SUB, degraded)
     model.train()
     return {"select": round((res_c["macro_auc"] + res_d["macro_auc"]) / 2, 4), "clean_macro_auc": res_c["macro_auc"],
@@ -951,7 +1021,11 @@ elif FINISHED.exists():
     print("↺ training already finished in an earlier session:", FINISHED.read_text())
     print("  (delete training_finished.json in Drive to train again)")
 else:
-    model = new_model(pretrained=not CKPT.exists(), train=True)
+    _init = not CKPT.exists() and INIT_PTH is not None and INIT_PTH.exists()
+    model = new_model(pretrained=not CKPT.exists() and not _init, train=True)
+    if _init:
+        model.load_state_dict(torch.load(INIT_PTH, map_location="cpu", weights_only=True))
+        runlog(f"starting from {INIT_FROM}: {INIT_PTH}")
     head_params = [p for n, p in model.named_parameters() if not n.startswith("backbone.")]
     optim = torch.optim.AdamW([{"params": list(model.backbone.parameters()), "lr": LR_BACKBONE}, {"params": head_params, "lr": LR_HEADS}],
                               weight_decay=WEIGHT_DECAY)
@@ -959,14 +1033,32 @@ else:
     sched = torch.optim.lr_scheduler.LambdaLR(optim, lambda s: min(1.0, (s + 1) / warmup) * 0.5 * (1 + np.cos(np.pi * min(1.0, s / TOTAL_STEPS))))
     scaler = torch.amp.GradScaler(DEVICE, enabled=AMP_DTYPE == torch.float16)
     step, best, since_best, history = 0, -1.0, 0, []
+
+    def params_finite():
+        return all(bool(torch.isfinite(p).all()) for p in model.parameters())
+
+    def roll_back(why):
+        # broken weights: go back to the best model saved so far (else the starting model), with fresh optimizer moments
+        drive_writer.wait()
+        src = BEST_PTH if BEST_PTH.exists() else INIT_PTH
+        if src is None or not src.exists():
+            raise RuntimeError(f"{why}, and no saved model to go back to")
+        model.load_state_dict(torch.load(src, map_location="cpu", weights_only=True))
+        optim.state.clear()
+        runlog(f"⚠ {why}: weights restored from {src}, optimizer reset")
+
     if CKPT.exists():
         st = torch.load(CKPT, map_location="cpu", weights_only=False)
         model.load_state_dict(st["model"]); optim.load_state_dict(st["optim"]); sched.load_state_dict(st["sched"]); scaler.load_state_dict(st["scaler"])
         step, best, since_best, history = st["step"], st["best"], st["since_best"], st["history"]
         runlog(f"resumed from checkpoint at step {step}/{TOTAL_STEPS} (best {best:.4f})")
         del st
+        if not params_finite():
+            roll_back("the checkpoint's weights are broken (NaN)")
 
     def save_checkpoint():
+        if not params_finite():
+            roll_back("weights became NaN, checkpoint not saved")
         snap = WORK / f"last_{step}.pt"
         torch.save({"model": model.state_dict(), "optim": optim.state_dict(), "sched": sched.state_dict(), "scaler": scaler.state_dict(),
                     "step": step, "best": best, "since_best": since_best, "history": history}, snap)
@@ -994,24 +1086,46 @@ else:
     loader = DataLoader(train_set, batch_sampler=StepSampler(step), num_workers=NUM_WORKERS, pin_memory=DEVICE == "cuda",
                         persistent_workers=NUM_WORKERS > 0, prefetch_factor=4 if NUM_WORKERS else None)
     t0, last_save, losses, reason, time_up = time.time(), time.time(), [], "all steps done", False
+    n_steps, retried, skipped, bad_streak = 0, 0, 0, 0
     try:
         for x, y, mask, valid, _has_file in loader:
             x, y = x.to(DEVICE, non_blocking=True), y.to(DEVICE, non_blocking=True).float()
             mask, valid = mask.to(DEVICE, non_blocking=True), valid.to(DEVICE, non_blocking=True)
+            target = y * (1 - LABEL_SMOOTHING) + 0.5 * LABEL_SMOOTHING
             with torch.autocast(DEVICE, dtype=AMP_DTYPE, enabled=AMP_DTYPE is not None):
                 logit, mask_logit = model(x)
-            target = y * (1 - LABEL_SMOOTHING) + 0.5 * LABEL_SMOOTHING
             loss = F.binary_cross_entropy_with_logits(logit.float(), target) + MASK_LOSS_WEIGHT * mask_loss(mask_logit.float(), mask, valid)
+            if not torch.isfinite(loss) and AMP_DTYPE is not None:
+                # float16 overflow (T4): redo this batch in full precision
+                del logit, mask_logit, loss
+                retried += 1
+                try:
+                    logit, mask_logit = model(x)
+                    loss = F.binary_cross_entropy_with_logits(logit, target) + MASK_LOSS_WEIGHT * mask_loss(mask_logit, mask, valid)
+                except torch.OutOfMemoryError:      # full precision needs more memory: skip this batch instead
+                    logit = mask_logit = None
+                    loss = torch.tensor(float("nan"), device=DEVICE)
+                    torch.cuda.empty_cache()
             optim.zero_grad(set_to_none=True)
-            scaler.scale(loss).backward()
-            scaler.unscale_(optim)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            scaler.step(optim); scaler.update(); sched.step()
-            step += 1
-            losses.append(loss.item())
+            if torch.isfinite(loss):
+                bad_streak = 0
+                scaler.scale(loss).backward()
+                scaler.unscale_(optim)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                scaler.step(optim); scaler.update()
+                losses.append(loss.item())
+            else:                                   # never learn from a NaN batch
+                skipped += 1; bad_streak += 1
+                if bad_streak >= 20:
+                    roll_back("20 NaN batches in a row"); bad_streak = 0
+            sched.step()
+            step += 1; n_steps += 1
             if step % 100 == 0:
-                print(f"step {step}/{TOTAL_STEPS}  loss {np.mean(losses[-200:]):.4f}  lr {sched.get_last_lr()[0]:.2e}  "
-                      f"{len(losses) * BATCH_SIZE / (time.time() - t0):.0f} img/s  {session_hours():.2f} h", flush=True)
+                if not params_finite():
+                    roll_back(f"weights became NaN at step {step}")
+                extra = f"  fp32 redo {retried}  skipped {skipped}" if retried or skipped else ""
+                print(f"step {step}/{TOTAL_STEPS}  loss {np.mean(losses[-200:]) if losses else float('nan'):.4f}  lr {sched.get_last_lr()[0]:.2e}  "
+                      f"{n_steps * BATCH_SIZE / (time.time() - t0):.0f} img/s  {session_hours():.2f} h{extra}", flush=True)
             time_up = (time.time() - t0) / 3600 >= MAX_TRAIN_HOURS or session_hours() >= MAX_SESSION_HOURS
             if step % EVAL_EVERY == 0 or step == TOTAL_STEPS or time_up:
                 res = validate(model)
@@ -1041,7 +1155,7 @@ else:
     del loader
     if not time_up:
         atomic_json(FINISHED, {"step": step, "reason": reason, "best": best})
-    atomic_json(DRIVE_DIR / "history.json", history)
+    atomic_json(RUN_DIR / "history.json", history)
     runlog(f"training stopped at step {step}/{TOTAL_STEPS}: {reason}; best {best:.4f}")
     del model, optim
     gc.collect()
@@ -1052,9 +1166,9 @@ else:
 """)
 
 md("""
-## Stage 5: final scores, on the old model and the new one
-Uses the best model chosen on validation. It is scored once on images it never trained on. **The old EfficientNet-B0 is
-scored on the same images**, so the comparison is fair. The gold sets are the numbers to quote.
+## Stage 5: final scores, for this model and every earlier one
+Uses the best model chosen on validation. It is scored once on images it never trained on. **v2 (EfficientNet-B0) and the
+model this run started from are scored on the same images**, so the comparison is fair. The gold sets are the numbers to quote.
 """)
 
 code(r"""
@@ -1110,7 +1224,15 @@ TEST_SETS = {
     "GOLD in the wild (OpenFake Reddit)": _real("gold_reddit_fake", "gold_reddit_real"),
     "GOLD unseen videos (WildDeepfake test)": _real("gold_wild_fake", "gold_wild_real"),
 }
-THRESHOLD_V3 = BIAS
+# every earlier model, each with the threshold it is served with
+BASELINES = {"v2": (fwd_v2, 0.0)}
+if INIT_PTH is not None and INIT_PTH.exists():
+    prev = new_model(pretrained=False)
+    prev.load_state_dict(torch.load(INIT_PTH, map_location="cpu", weights_only=True))
+    prev.eval()
+    _prev_zip = INIT_PTH.parent / f"synthface_{INIT_FROM}.zip"
+    _prev_bias = json.loads(zipfile.ZipFile(_prev_zip).read("model_meta.json"))["calibration"]["bias"] if _prev_zip.exists() else 0.0
+    BASELINES[INIT_FROM] = (lambda x: prev(x), _prev_bias)
 
 results = {}
 for name, rows in TEST_SETS.items():
@@ -1118,43 +1240,55 @@ for name, rows in TEST_SETS.items():
         continue
     rows = sample(rows, 40_000)
     new_scores, iou = collect(fwd_v3, rows)
-    entry = {"new": summarize(rows, new_scores, THRESHOLD_V3), "old": summarize(rows, collect(fwd_v2, rows)[0])}
+    entry = {"new": summarize(rows, new_scores, BIAS)}
+    for v, (fwd, threshold) in BASELINES.items():
+        entry[v] = summarize(rows, collect(fwd, rows)[0], threshold)
     if iou is not None:
         entry["new"]["mask_iou"] = round(iou, 4)
     for kind in ("jpeg50", "half", "jpeg50+half"):
-        entry["new"][f"auc_{kind}"] = summarize(rows, collect(fwd_v3, rows, kind)[0], THRESHOLD_V3).get("auc")
-        entry["old"][f"auc_{kind}"] = summarize(rows, collect(fwd_v2, rows, kind)[0]).get("auc")
+        entry["new"][f"auc_{kind}"] = summarize(rows, collect(fwd_v3, rows, kind)[0], BIAS).get("auc")
+        for v, (fwd, threshold) in BASELINES.items():
+            entry[v][f"auc_{kind}"] = summarize(rows, collect(fwd, rows, kind)[0], threshold).get("auc")
     results[name] = entry
 
 _keys = ("auc", "balanced_acc", "fake_recall", "real_specificity", "eer", "auc_jpeg50", "auc_half", "auc_jpeg50+half")
+_cols = list(BASELINES) + ["new"]
 for name, e in results.items():
     print(f"\n=== {name}   ({e['new']['real']} real, {e['new']['fake']} fake)")
-    print(f"{'':20s}{'old':>9s}{'new':>9s}")
+    print(f"{'':20s}" + "".join(f"{(RUN_NAME + ' (new)' if c == 'new' else c):>12s}" for c in _cols))
     for k in _keys:
-        print(f"{k:20s}{e['old'].get(k, float('nan')):9.3f}{e['new'].get(k, float('nan')):9.3f}")
+        print(f"{k:20s}" + "".join(f"{e[c].get(k, float('nan')):12.3f}" for c in _cols))
     if "mask_iou" in e["new"]:
-        print(f"{'mask_iou':20s}{'':>9s}{e['new']['mask_iou']:9.3f}")
-    print("  new model per source (AUC):", e["new"].get("per_source_auc"))
-    print("  old model per source (AUC):", e["old"].get("per_source_auc"))
-atomic_json(DRIVE_DIR / "metrics.json", results)
+        print(f"{'mask_iou':20s}{'':>{12 * (len(_cols) - 1)}s}{e['new']['mask_iou']:12.3f}")
+    for c in _cols:
+        print(f"  {c} per source (AUC):", e[c].get("per_source_auc"))
+atomic_json(RUN_DIR / "metrics.json", results)
 """)
 
 code(r"""
 # Package for the backend: half-precision weights, about 60 MB
 MODEL_DIR = WORK / "model"
 shutil.rmtree(MODEL_DIR, ignore_errors=True); MODEL_DIR.mkdir()
-torch.save({k: v.half().cpu() if v.is_floating_point() else v.cpu() for k, v in model.state_dict().items()}, MODEL_DIR / "synthface_v3.pth")
-_gold = {k: {m: v["new"].get(m) for m in ("auc", "balanced_acc", "fake_recall", "real_specificity", "eer")} for k, v in results.items()}
-meta = {"version": "v3", "backbone": BACKBONE, "fpn_dim": FPN_DIM, "input_size": IMAGE_SIZE, "mean": IMAGENET_MEAN, "std": IMAGENET_STD,
+WEIGHTS_NAME = f"synthface_{RUN_NAME}.pth"
+torch.save({k: v.half().cpu() if v.is_floating_point() else v.cpu() for k, v in model.state_dict().items()}, MODEL_DIR / WEIGHTS_NAME)
+_pick = lambda e: {m: e.get(m) for m in ("auc", "balanced_acc", "fake_recall", "real_specificity", "eer")}
+_gold = {k: _pick(v["new"]) for k, v in results.items()}
+meta = {"version": RUN_NAME, "name": f"ConvNeXt-Tiny {RUN_NAME}", "architecture": "synthface", "weights": WEIGHTS_NAME,
+        "default": True, "heatmap": "alteration", "uncertain_band": [0.35, 0.75],
+        "description": f"ConvNeXt-Tiny with an alteration-map decoder, {len(train_rows):,} face crops"
+                       + (f", fine-tuned from {INIT_FROM}" if INIT_PTH is not None and INIT_PTH.exists() else "") + ".",
+        "backbone": BACKBONE, "fpn_dim": FPN_DIM, "input_size": IMAGE_SIZE, "mean": IMAGENET_MEAN, "std": IMAGENET_STD,
         "calibration": {"temperature": TEMPERATURE, "bias": BIAS}, "metrics": _gold,
+        # the earlier models on the same test images: the backend shows these in its comparison table
+        "baseline_metrics": {v: {k: _pick(e[v]) for k, e in results.items()} for v in BASELINES},
         "trained_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "training_images": len(train_rows)}
 (MODEL_DIR / "model_meta.json").write_text(json.dumps(meta, indent=2))
-ZIP = WORK / "synthface_v3.zip"
+ZIP = WORK / f"synthface_{RUN_NAME}.zip"
 with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_STORED) as z:
     for f in sorted(MODEL_DIR.iterdir()):
         z.write(f, arcname=f.name)
-atomic_copy(ZIP, DRIVE_DIR / "synthface_v3.zip")
-runlog("DONE. Model: " + str(DRIVE_DIR / "synthface_v3.zip") + " | " + json.dumps(_gold))
+atomic_copy(ZIP, RUN_DIR / ZIP.name)
+runlog("DONE. Model: " + str(RUN_DIR / ZIP.name) + " | " + json.dumps(_gold))
 """)
 
 md("""
@@ -1189,11 +1323,11 @@ def _panel(row):
 
 _rng = random.Random(SEED)
 _sheet = []
-for s in ("fake_inpaint", "fake_swap", "fake_sfhq", "fake_openfake", "real_wiki", "real_ffhq"):
+for s in ("fake_inpaint", "fake_swap", "fake_sfhq", "fake_openfake", "real_wiki", "real_social", "real_ffhq"):
     pool = [r for r in by_split["test"] if r["source"] == s]
     _sheet += [_panel(r) for r in _rng.sample(pool, min(2, len(pool)))]
 if _sheet:
-    _png = DRIVE_DIR / "sample_maps.png"
+    _png = RUN_DIR / "sample_maps.png"
     Image.fromarray(np.vstack(_sheet)).save(_png)
     try:
         from IPython.display import Image as _Show, display
@@ -1205,8 +1339,8 @@ if _sheet:
 code(r"""
 # Make sure Drive has every byte, then release the GPU (saves compute units)
 drive_writer.wait()
-print("Model:", DRIVE_DIR / "synthface_v3.zip")
-print("Install: extract into the project's backend/model/ folder, then restart or redeploy the backend.")
+print("Model:", RUN_DIR / f"synthface_{RUN_NAME}.zip")
+print(f"Install: extract into the project's backend/models/{RUN_NAME}/ folder, then restart or redeploy the backend.")
 if IN_COLAB:
     drive.flush_and_unmount()
     if DISCONNECT_WHEN_DONE and not QUICK_RUN:
