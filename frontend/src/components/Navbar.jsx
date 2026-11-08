@@ -6,6 +6,7 @@ import Logo from './Logo';
 const NAV_LINKS = [
   { label: 'Classifier', href: '#upload' },
   { label: 'Model Card', href: '#model'  },
+  { label: 'Versions',   href: '#versions' },
   { label: 'About',      href: '#about'  },
 ];
 
@@ -33,13 +34,13 @@ const Navbar = () => {
   return (
     <>
       {/* ── Desktop floating pill ───────────────── */}
-      <div className="hidden sm:flex fixed top-5 left-0 right-0 z-50 justify-center px-6">
+      <div className="hidden sm:flex fixed top-5 left-0 right-0 z-50 justify-center px-4 lg:px-6">
         <motion.nav
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
           aria-label="Main navigation"
-          className="glass-hi rounded-2xl flex items-center px-5 max-w-3xl w-full"
+          className="glass-hi rounded-2xl flex items-center px-3 lg:px-5 max-w-4xl w-full"
           style={{
             height: '60px',
             gap: '2px',
@@ -49,7 +50,7 @@ const Navbar = () => {
           }}
         >
           {/* Logo */}
-          <a href="#" className="flex-shrink-0 mr-6" aria-label="Home" style={{ display: 'flex', alignItems: 'center' }}>
+          <a href="#" className="flex-shrink-0 mr-3 lg:mr-6" aria-label="Home" style={{ display: 'flex', alignItems: 'center' }}>
             <Logo />
           </a>
 
@@ -59,7 +60,7 @@ const Navbar = () => {
               <a
                 key={label}
                 href={href}
-                className="text-sm font-medium px-3 py-2 rounded-xl transition-colors duration-150"
+                className="text-sm font-medium px-2 lg:px-3 py-2 rounded-xl whitespace-nowrap transition-colors duration-150"
                 style={{ color: '#9eaabb', transitionProperty: 'color, background' }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#f0f2f8'; linkHoverOn(e); }}
                 onMouseLeave={e => { e.currentTarget.style.color = '#9eaabb'; linkHoverOff(e); }}
@@ -86,7 +87,7 @@ const Navbar = () => {
               onMouseLeave={e => { e.currentTarget.style.color = '#9eaabb'; linkHoverOff(e); }}
             >
               <Icon style={{ width: 14, height: 14 }} aria-hidden="true" />
-              <span>{label}</span>
+              <span className="hidden lg:inline">{label}</span>
             </a>
           ))}
         </motion.nav>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Scan } from 'lucide-react';
+import { AlertTriangle, FileDown, Loader2, Scan } from 'lucide-react';
 import TiltCard from './TiltCard';
 import { MODEL_NAMES, verdictOf } from '../verdict';
 
@@ -47,7 +47,7 @@ const FaceChips = ({ faces, selected, onSelect }) => (
   </div>
 );
 
-const PredictionCard = ({ prediction, faces = [], selectedFace = 0, onSelectFace }) => {
+const PredictionCard = ({ prediction, faces = [], selectedFace = 0, onSelectFace, onDownload, downloading = false }) => {
   const { color: labelColor, glow: barGlow, text } = verdictOf(prediction?.prediction);
   const faceFound = prediction?.face_detected !== false;
   const modelName = MODEL_NAMES[prediction?.model_version] ?? prediction?.model_version;
@@ -162,6 +162,25 @@ const PredictionCard = ({ prediction, faces = [], selectedFace = 0, onSelectFace
           </motion.div>
         ))}
       </div>
+
+      {onDownload && (
+        <div className="px-5 pt-4">
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={downloading}
+            className="w-full flex items-center justify-center gap-2 text-sm font-medium rounded-xl py-2.5 transition-colors duration-150"
+            style={{ color: '#f0f2f8', background: 'rgba(91,141,238,0.16)', border: '1px solid rgba(91,141,238,0.35)', opacity: downloading ? 0.6 : 1 }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(91,141,238,0.26)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(91,141,238,0.16)')}
+          >
+            {downloading
+              ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              : <FileDown className="w-4 h-4" aria-hidden="true" />}
+            {downloading ? 'Preparing report…' : 'Download PDF report'}
+          </button>
+        </div>
+      )}
 
       {/* Disclaimer */}
       <motion.div
