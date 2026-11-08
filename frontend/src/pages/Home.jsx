@@ -8,6 +8,7 @@ import PredictionCard from '../components/PredictionCard';
 import ConfidenceGauge from '../components/ConfidenceGauge';
 import HeatmapCard from '../components/HeatmapCard';
 import ModelStats from '../components/ModelStats';
+import VersionTable from '../components/VersionTable';
 import Footer from '../components/Footer';
 import GridBackground from '../components/GridBackground';
 import BatchPanel from '../components/BatchPanel';
@@ -122,6 +123,21 @@ const Home = () => {
   const handleReset            = useCallback(() => { setSelectedImage(null); setImagePreview(null); setResult(null); setIsLoading(false); }, []);
   const handleModelChange      = useCallback((e) => { setModel(e.target.value); setResult(null); }, []);
 
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = useCallback(async () => {
+    if (!result || !imagePreview) return;
+    setDownloading(true);
+    try {
+      const { downloadReport } = await import('../report');
+      await downloadReport({ result, imageSrc: imagePreview, fileName: selectedImage?.name, selectedFace });
+    } catch (err) {
+      console.error('PDF report failed', err);
+      window.alert('Sorry, the PDF report could not be created.');
+    } finally {
+      setDownloading(false);
+    }
+  }, [result, imagePreview, selectedImage, selectedFace]);
+
   const prediction    = faceView(result, selectedFace);
   const hasPrediction = Boolean(result);
 
@@ -228,7 +244,8 @@ const Home = () => {
                 <AnimatePresence mode="wait">
                   {hasPrediction ? (
                     <motion.div key="pred" {...fadeIn} className="flex flex-col">
-                      <PredictionCard prediction={prediction} faces={result.faces ?? []} selectedFace={selectedFace} onSelectFace={setSelectedFace} />
+                      <PredictionCard prediction={prediction} faces={result.faces ?? []} selectedFace={selectedFace} onSelectFace={setSelectedFace}
+                        onDownload={handleDownload} downloading={downloading} />
                     </motion.div>
                   ) : (
                     <motion.div key="pred-ph" {...fadeIn} className="flex flex-col">
@@ -284,6 +301,17 @@ const Home = () => {
           />
 
           <ModelStats />
+
+          <div
+            aria-hidden="true"
+            style={{
+              height: 1,
+              background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 70%, transparent)',
+              margin: '0 2.5rem',
+            }}
+          />
+
+          <VersionTable />
 
           <div
             aria-hidden="true"

@@ -13,9 +13,9 @@ const TECH = [
 
 const LIMITATIONS = [
   'Single images only: not a video deepfake detector',
-  'Still flags about half of real social-media photos as AI-generated',
-  'Less reliable on generators it never saw in training',
-  'Performance degrades on heavily compressed or very small faces',
+  'Real social-media photos: v4 accepts 53% (v3: 10%), so some are still flagged as AI',
+  'Generators it never saw in training: AUC 0.80, lower than on known ones (0.97)',
+  'Faces smaller than 40 px are not detected; the image centre is analysed instead',
   'Not suitable for legal, forensic, or production security use cases',
 ];
 
