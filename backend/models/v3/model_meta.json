@@ -19,11 +19,11 @@
   },
   "metrics": {
     "held-out test (same generators as training)": {
-      "auc": 0.9811,
-      "balanced_acc": 0.9424,
+      "auc": 0.9741,
+      "balanced_acc": 0.9278,
       "fake_recall": 0.9491,
-      "real_specificity": 0.9357,
-      "eer": 0.057
+      "real_specificity": 0.9065,
+      "eer": 0.0747
     },
     "GOLD unseen generators (OpenFake core/test)": {
       "auc": 0.8277,
@@ -48,5 +48,16 @@
     }
   },
   "trained_at": "2026-11-07T13:00:54Z",
-  "training_images": 179426
+  "training_images": 179426,
+  "name": "ConvNeXt-Tiny v3",
+  "architecture": "synthface",
+  "weights": "synthface_v3.pth",
+  "default": false,
+  "heatmap": "alteration",
+  "uncertain_band": [
+    0.35,
+    0.75
+  ],
+  "description": "ConvNeXt-Tiny with an alteration-map decoder, 179k face crops from 10+ generators.",
+  "metrics_note": "Scored by the v4 notebook on the same test images as v4."
 }

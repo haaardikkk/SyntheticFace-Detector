@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ScanLine, Eye, BarChart2 } from 'lucide-react';
+import { ScanLine, Eye, BarChart2, Image as ImageIcon, Layers, GitCompare } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import UploadCard from '../components/UploadCard';
@@ -10,6 +10,10 @@ import HeatmapCard from '../components/HeatmapCard';
 import ModelStats from '../components/ModelStats';
 import Footer from '../components/Footer';
 import GridBackground from '../components/GridBackground';
+import BatchPanel from '../components/BatchPanel';
+import ComparePanel from '../components/ComparePanel';
+import { fetchModels } from '../api';
+import { faceView } from '../verdict';
 
 const EASE = [0.23, 1, 0.32, 1];
 
@@ -89,17 +93,37 @@ const fadeIn = {
   exit:    { opacity: 0, transition: { duration: 0.18 } },
 };
 
+const MODES = [
+  { id: 'single',  label: 'Single image',   short: 'Single',  Icon: ImageIcon  },
+  { id: 'batch',   label: 'Batch',          short: 'Batch',   Icon: Layers     },
+  { id: 'compare', label: 'Compare models', short: 'Compare', Icon: GitCompare },
+];
+
 const Home = () => {
+  const [mode,          setMode]          = useState('single');
+  const [models,        setModels]        = useState([]);
+  const [defaultModel,  setDefaultModel]  = useState(null);
+  const [model,         setModel]         = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview,  setImagePreview]  = useState(null);
-  const [prediction,    setPrediction]    = useState(null);
+  const [result,        setResult]        = useState(null);
+  const [selectedFace,  setSelectedFace]  = useState(0);
   const [isLoading,     setIsLoading]     = useState(false);
 
-  const handleImageSelect      = useCallback((f, p) => { setSelectedImage(f); setImagePreview(p); setPrediction(null); }, []);
-  const handlePredictionResult = useCallback((r) => setPrediction(r), []);
-  const handleReset            = useCallback(() => { setSelectedImage(null); setImagePreview(null); setPrediction(null); setIsLoading(false); }, []);
+  // The model list is a nice-to-have: if it fails, the backend's default model is used
+  useEffect(() => {
+    fetchModels()
+      .then(({ default: d, models: list }) => { setModels(list); setDefaultModel(d); setModel(d); })
+      .catch(() => {});
+  }, []);
 
-  const hasPrediction = useMemo(() => Boolean(prediction), [prediction]);
+  const handleImageSelect      = useCallback((f, p) => { setSelectedImage(f); setImagePreview(p); setResult(null); }, []);
+  const handlePredictionResult = useCallback((r) => { setResult(r); setSelectedFace(r.primary_face ?? 0); }, []);
+  const handleReset            = useCallback(() => { setSelectedImage(null); setImagePreview(null); setResult(null); setIsLoading(false); }, []);
+  const handleModelChange      = useCallback((e) => { setModel(e.target.value); setResult(null); }, []);
+
+  const prediction    = faceView(result, selectedFace);
+  const hasPrediction = Boolean(result);
 
   return (
     <div className="min-h-screen" style={{ background: '#07080f' }}>
@@ -140,8 +164,50 @@ const Home = () => {
                 </p>
               </motion.div>
 
+              {/* Mode tabs + model picker */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <div role="tablist" aria-label="Classifier mode" className="glass rounded-xl p-1 flex gap-1 max-w-full">
+                  {MODES.map(({ id, label, short, Icon }) => (
+                    <button
+                      key={id}
+                      role="tab"
+                      type="button"
+                      aria-selected={mode === id}
+                      onClick={() => setMode(id)}
+                      className="flex items-center gap-2 text-sm px-3.5 py-2 rounded-lg whitespace-nowrap transition-colors duration-150"
+                      style={{
+                        color: mode === id ? '#f0f2f8' : '#9eaabb',
+                        background: mode === id ? 'rgba(91,141,238,0.18)' : 'transparent',
+                      }}
+                    >
+                      <Icon className="w-4 h-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">{label}</span>
+                      <span className="sm:hidden">{short}</span>
+                    </button>
+                  ))}
+                </div>
+                {mode !== 'compare' && models.length > 1 && (
+                  <label className="flex items-center gap-2 text-xs" style={{ color: '#9eaabb' }}>
+                    Model
+                    <select
+                      value={model ?? ''}
+                      onChange={handleModelChange}
+                      className="glass rounded-lg text-sm px-3 py-2 font-mono outline-none"
+                      style={{ color: '#f0f2f8', background: 'rgba(17,19,30,0.9)' }}
+                    >
+                      {models.map((m) => (
+                        <option key={m.version} value={m.version}>{m.name ?? m.version}{m.version === defaultModel ? ' (default)' : ''}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+
+              {mode === 'batch' && <BatchPanel model={model} />}
+              {mode === 'compare' && <ComparePanel models={models} defaultModel={defaultModel} />}
+
               {/* 2×2 card grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className={`grid grid-cols-1 lg:grid-cols-2 gap-5 ${mode === 'single' ? '' : 'hidden'}`}>
 
                 {/* Upload */}
                 <UploadCard
@@ -152,13 +218,17 @@ const Home = () => {
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
                   onReset={handleReset}
+                  model={model}
+                  faces={result?.faces ?? []}
+                  selectedFace={selectedFace}
+                  onSelectFace={setSelectedFace}
                 />
 
                 {/* Prediction */}
                 <AnimatePresence mode="wait">
                   {hasPrediction ? (
                     <motion.div key="pred" {...fadeIn} className="flex flex-col">
-                      <PredictionCard prediction={prediction} />
+                      <PredictionCard prediction={prediction} faces={result.faces ?? []} selectedFace={selectedFace} onSelectFace={setSelectedFace} />
                     </motion.div>
                   ) : (
                     <motion.div key="pred-ph" {...fadeIn} className="flex flex-col">
@@ -174,7 +244,7 @@ const Home = () => {
                       animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE, delay: 0.06 } }}
                       className="flex flex-col"
                     >
-                      <HeatmapCard heatmap={prediction.heatmap} originalPreview={imagePreview} />
+                      <HeatmapCard heatmap={prediction.heatmap} originalPreview={imagePreview} kind={prediction.heatmap_kind} />
                     </motion.div>
                   ) : (
                     <motion.div key="heat-ph" {...fadeIn} className="flex flex-col">

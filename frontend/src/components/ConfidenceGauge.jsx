@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Activity } from 'lucide-react';
 import TiltCard from './TiltCard';
+import { verdictOf } from '../verdict';
 
 const C_MUTED = '#6b7a94';
-const VERDICT_COLOR = { REAL: '#4ade80', FAKE: '#f87171' };
 
 // A two-way decision is always at least 50% confident, so the scale starts at 50.
 const BANDS = [
@@ -21,7 +21,7 @@ const ARC_PATH = `M ${100 - R} 100 A ${R} ${R} 0 0 1 ${100 + R} 100`;
 
 const ConfidenceGauge = ({ confidence, prediction }) => {
   const band = getBand(confidence);
-  const color = VERDICT_COLOR[prediction] ?? '#5b8dee';
+  const { color } = verdictOf(prediction);
   const fill = Math.min(1, Math.max(0, (confidence - 50) / 50));
 
   return (
@@ -33,7 +33,7 @@ const ConfidenceGauge = ({ confidence, prediction }) => {
         </div>
         <div>
           <h2 className="text-sm font-semibold" style={{ color: '#f0f2f8', lineHeight: 1.2 }}>Confidence Score</h2>
-          <p className="text-xs mt-0.5" style={{ color: C_MUTED }}>How sure the model is that this face is {prediction}</p>
+          <p className="text-xs mt-0.5" style={{ color: C_MUTED }}>{prediction === 'UNCERTAIN' ? 'Too close to call: neither answer is likely enough' : `How sure the model is that this face is ${prediction}`}</p>
         </div>
       </div>
 

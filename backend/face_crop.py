@@ -26,8 +26,8 @@ def _detector():
     return _local.yunet
 
 
-def detect_largest_face(image):
-    """Return (x, y, w, h) of the largest face in an RGB array, or None."""
+def detect_faces(image):
+    """Return every face in an RGB array as (x, y, w, h), largest first."""
     h, w = image.shape[:2]
     scale = min(1.0, MAX_DETECT_SIDE / max(h, w))
     small = image if scale == 1.0 else cv2.resize(
@@ -37,11 +37,16 @@ def detect_largest_face(image):
     yunet.setInputSize((small.shape[1], small.shape[0]))
     _, faces = yunet.detect(cv2.cvtColor(small, cv2.COLOR_RGB2BGR))
     if faces is None:
-        return None
-    x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])[:4] / scale
-    if min(fw, fh) < MIN_FACE_PX:
-        return None
-    return float(x), float(y), float(fw), float(fh)
+        return []
+    boxes = [tuple(float(v) for v in f[:4] / scale) for f in faces]
+    boxes = [b for b in boxes if min(b[2], b[3]) >= MIN_FACE_PX]
+    return sorted(boxes, key=lambda b: b[2] * b[3], reverse=True)
+
+
+def detect_largest_face(image):
+    """Return (x, y, w, h) of the largest face in an RGB array, or None."""
+    faces = detect_faces(image)
+    return faces[0] if faces else None
 
 
 def crop_square(image, box=None, size=CROP_SIZE):

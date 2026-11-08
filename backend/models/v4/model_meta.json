@@ -1,0 +1,124 @@
+{
+  "version": "v4",
+  "name": "ConvNeXt-Tiny v4",
+  "architecture": "synthface",
+  "weights": "synthface_v4.pth",
+  "default": true,
+  "heatmap": "alteration",
+  "uncertain_band": [
+    0.35,
+    0.75
+  ],
+  "description": "ConvNeXt-Tiny with an alteration-map decoder, fine-tuned from v3 on 182k face crops, with real social-media photos and re-upload compression. Far fewer false alarms on real photos.",
+  "backbone": "convnext_tiny.fb_in22k_ft_in1k",
+  "fpn_dim": 128,
+  "input_size": 256,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "calibration": {
+    "temperature": 1.1966660022735596,
+    "bias": 0.24247004091739655
+  },
+  "metrics": {
+    "held-out test (same generators as training)": {
+      "auc": 0.9656,
+      "balanced_acc": 0.9244,
+      "fake_recall": 0.937,
+      "real_specificity": 0.9117,
+      "eer": 0.0785
+    },
+    "GOLD unseen generators (OpenFake core/test)": {
+      "auc": 0.8031,
+      "balanced_acc": 0.7387,
+      "fake_recall": 0.8538,
+      "real_specificity": 0.6236,
+      "eer": 0.2709
+    },
+    "GOLD in the wild (OpenFake Reddit)": {
+      "auc": 0.7273,
+      "balanced_acc": 0.639,
+      "fake_recall": 0.7457,
+      "real_specificity": 0.5323,
+      "eer": 0.3368
+    },
+    "GOLD unseen videos (WildDeepfake test)": {
+      "auc": 0.8358,
+      "balanced_acc": 0.7354,
+      "fake_recall": 0.8173,
+      "real_specificity": 0.6535,
+      "eer": 0.2619
+    }
+  },
+  "baseline_metrics": {
+    "v2": {
+      "held-out test (same generators as training)": {
+        "auc": 0.4709,
+        "balanced_acc": 0.4922,
+        "fake_recall": 0.3164,
+        "real_specificity": 0.6681,
+        "eer": 0.5393
+      },
+      "GOLD unseen generators (OpenFake core/test)": {
+        "auc": 0.7302,
+        "balanced_acc": 0.6109,
+        "fake_recall": 0.3722,
+        "real_specificity": 0.8497,
+        "eer": 0.3175
+      },
+      "GOLD in the wild (OpenFake Reddit)": {
+        "auc": 0.2858,
+        "balanced_acc": 0.3277,
+        "fake_recall": 0.195,
+        "real_specificity": 0.4605,
+        "eer": 0.667
+      },
+      "GOLD unseen videos (WildDeepfake test)": {
+        "auc": 0.4579,
+        "balanced_acc": 0.4988,
+        "fake_recall": 0.0,
+        "real_specificity": 0.9975,
+        "eer": 0.532
+      }
+    },
+    "v3": {
+      "held-out test (same generators as training)": {
+        "auc": 0.9741,
+        "balanced_acc": 0.9278,
+        "fake_recall": 0.9491,
+        "real_specificity": 0.9065,
+        "eer": 0.0747
+      },
+      "GOLD unseen generators (OpenFake core/test)": {
+        "auc": 0.8277,
+        "balanced_acc": 0.7398,
+        "fake_recall": 0.9386,
+        "real_specificity": 0.5411,
+        "eer": 0.2512
+      },
+      "GOLD in the wild (OpenFake Reddit)": {
+        "auc": 0.5555,
+        "balanced_acc": 0.5293,
+        "fake_recall": 0.961,
+        "real_specificity": 0.0976,
+        "eer": 0.4568
+      },
+      "GOLD unseen videos (WildDeepfake test)": {
+        "auc": 0.7894,
+        "balanced_acc": 0.7131,
+        "fake_recall": 0.619,
+        "real_specificity": 0.8073,
+        "eer": 0.2862
+      }
+    }
+  },
+  "trained_at": "2026-11-08T11:23:33Z",
+  "training_images": 182167
+}

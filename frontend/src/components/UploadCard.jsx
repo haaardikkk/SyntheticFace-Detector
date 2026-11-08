@@ -2,14 +2,15 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Upload, Image as ImageIcon, X, Loader2, CheckCircle2, Clipboard } from 'lucide-react';
 import { predictImage } from '../api';
+import FaceImage from './FaceImage';
 import TiltCard from './TiltCard';
 
-const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const MAX_SIZE_MB  = 10;
 
 function validateFile(file) {
   if (!VALID_TYPES.includes(file.type))
-    throw new Error('Please upload a valid image file (JPG, JPEG, or PNG).');
+    throw new Error('Please upload a JPG, PNG or WebP image.');
   if (file.size > MAX_SIZE_MB * 1024 * 1024)
     throw new Error(`File size must be less than ${MAX_SIZE_MB} MB.`);
 }
@@ -41,6 +42,10 @@ const UploadCard = ({
   isLoading,
   setIsLoading,
   onReset,
+  model,
+  faces,
+  selectedFace,
+  onSelectFace,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [error,      setError]      = useState(null);
@@ -77,18 +82,18 @@ const UploadCard = ({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await predictImage(selectedImage);
+      const result = await predictImage(selectedImage, model);
       onPredictionResult(result);
     } catch (err) {
       setError(err.message || 'Classification failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [selectedImage, isLoading, setIsLoading, onPredictionResult]);
+  }, [selectedImage, isLoading, setIsLoading, onPredictionResult, model]);
 
   return (
     <TiltCard maxTilt={4}>
-      <CardHeader Icon={Upload} title="Upload Image" sub="JPG / PNG — max 10 MB" />
+      <CardHeader Icon={Upload} title="Upload Image" sub="JPG / PNG / WebP — max 10 MB" />
 
       <div className="flex-1 flex flex-col p-4 min-h-0">
         <AnimatePresence mode="wait">
@@ -122,7 +127,7 @@ const UploadCard = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/jpg,image/png"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleChange}
                 className="hidden"
                 aria-hidden="true"
@@ -159,9 +164,9 @@ const UploadCard = ({
               {/* Preview image */}
               <div className="relative group rounded-xl overflow-hidden flex-1 min-h-[200px]"
                    style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-contain absolute inset-0" loading="lazy" />
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                     style={{ background: 'rgba(0,0,0,0.35)' }} />
+                <div className="absolute inset-0 p-3">
+                  <FaceImage key={imagePreview} src={imagePreview} alt="Preview" faces={faces} selected={selectedFace} onSelect={onSelectFace} />
+                </div>
                 <button
                   onClick={handleRemove}
                   aria-label="Remove image"

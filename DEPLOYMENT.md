@@ -34,9 +34,14 @@ comma-separated list of origins. It **replaces** the defaults, so include the Ve
 
 ## Installing a newly trained model
 
-1. Download `MyDrive/SyntheticFace_v3/synthface_v3.zip`.
-2. Extract it into `backend/model/`, so that `backend/model/model_meta.json` exists.
-3. Push the backend as above.
+1. Download the zip the notebook made: `MyDrive/SyntheticFace_v3/runs/<version>/synthface_<version>.zip`
+   (the first run, v3, is at `MyDrive/SyntheticFace_v3/synthface_v3.zip`).
+2. Extract it into `backend/models/<version>/`, so that `backend/models/<version>/model_meta.json` exists.
+3. In the previous default model's `model_meta.json`, set `"default": false` (or leave it: the newest default wins).
+4. Push the backend as above.
+
+Older versions stay available in the model picker and in Compare. To remove one, delete its folder.
+Each model adds about 60 MB of image size and 250 MB of memory: the free Space has 16 GB.
 
 `*.pth` files are stored with Git LFS (see `.gitattributes`). A file of about 130 bytes is a pointer, not a model: run `git lfs pull`.
 
